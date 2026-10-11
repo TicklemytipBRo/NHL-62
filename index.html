@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080f1a"><meta name="description" content="Take the ice in RINK 26. Play a 3D arcade hockey match with skating, passing, charged shots, checks, and computer opponents, all 32 NHL teams, live rosters, and a dedicated goalie mode.">
+  <title>RINK 26 — NHL Hockey</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23080f1a'/%3E%3Cpath d='M18 12v31q0 6 6 6h24v-9H28V12' fill='%23cefa54'/%3E%3Cellipse cx='44' cy='29' rx='10' ry='5' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main id="app">
+    <div id="rink" aria-label="3D hockey rink"></div>
+    <div class="vignette"></div>
+    <header class="topbar"><a class="wordmark" href="./" aria-label="RINK 26 home">RINK<span>26</span><i></i></a><div class="edition">VERY BAD GAMES <span>/</span> HOCKEY</div><div class="top-actions"><button id="sound" class="icon-button" aria-label="Mute audio" title="Sound on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path class="waves" d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button><button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button><button id="pause" class="icon-button hidden" aria-label="Pause match" title="Pause (Esc)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg></button></div></header>
+    <section id="menu" class="menu">
+      <div class="menu-heading"><div class="eyebrow"><span class="live-dash"></span> 32 NHL TEAMS / LIVE ROSTERS</div><h1>TAKE<br>THE <em>ICE.</em></h1><p>Every team. Every shift. Your ice.</p></div>
+      <div class="match-card">
+        <div class="card-header"><span>QUICK MATCH</span><span class="pill">NHL EDITION</span></div><div class="mode-toggle" role="group" aria-label="Play mode"><button id="mode-skater" class="active" aria-pressed="true">SKATER MODE</button><button id="mode-goalie" aria-pressed="false">GOALIE MODE</button></div><p id="mode-description">Control your skaters. Build the play.</p>
+        <div class="matchup">
+          <div class="team-pick"><label for="home-team">YOUR TEAM</label><div class="team-badge" id="home-badge"><img src="./logos/EDM.svg" alt="Edmonton Oilers logo"></div><select id="home-team" aria-label="Your team"></select><small id="home-name"></small><button id="home-roster" class="roster-link">View roster</button></div>
+          <span class="versus">VS</span>
+          <div class="team-pick away"><label for="away-team">OPPONENT</label><div class="team-badge" id="away-badge"><img src="./logos/CGY.svg" alt="Calgary Flames logo"></div><select id="away-team" aria-label="Opponent team"></select><small id="away-name"></small><button id="away-roster" class="roster-link">View roster</button></div>
+        </div>
+        <label class="player-select"><span id="player-select-label">STARTING SKATER</span><select id="home-player" aria-label="Choose your starting player"><option>Loading roster…</option></select></label><div class="settings"><label>DIFFICULTY<select id="difficulty"><option value="rookie">Rookie</option><option value="pro" selected>Pro</option><option value="allstar">All-Star</option></select></label><label>PERIOD LENGTH<select id="period-length"><option value="60">1 minute</option><option value="120">2 minutes</option><option value="180">3 minutes</option></select></label></div>
+        <button id="start" class="primary" disabled>DROP THE PUCK <svg viewBox="0 0 24 24" fill="currentColor"><path d="m9 5 11 7-11 7Z"/></svg></button>
+        <div class="card-note"><span id="mode-note">YOU ATTACK RIGHT</span><span>3 PERIODS + OVERTIME</span></div><div class="sync-summary"><button id="all-rosters">NHL PLAYER DIRECTORY</button><button id="sync-now">SYNC</button><span id="roster-status" aria-live="polite">Loading all 32 rosters…</span></div>
+      </div>
+      <div class="menu-links"><button class="controls-link" id="how-to">Customize controls <span>?</span></button><button class="controls-link" id="replay-intro">Replay intro <span>▶</span></button></div>
+      <div class="menu-footer"><span>01 / EXHIBITION</span><span>UNOFFICIAL FAN GAME · NHL ROSTER DATA</span></div>
+    </section>
+    <section id="hud" class="hidden" aria-label="Match scoreboard">
+      <div class="scoreboard"><div class="score-team home-score"><span class="score-abbr" id="home-abbr">EDM</span><strong id="home-score">0</strong></div><div class="score-clock"><span id="period-label">1ST</span><b id="clock">1:00</b></div><div class="score-team away-score"><strong id="away-score">0</strong><span class="score-abbr" id="away-abbr">CGY</span></div></div>
+      <div class="match-topline"><span id="shot-count">SHOTS 0 – 0</span><span id="attack-hint">ATTACK RIGHT <b>›</b></span></div>
+      <div id="callout" class="callout hidden" aria-live="polite"><span id="callout-kicker"></span><strong id="callout-title"></strong><p id="callout-detail"></p></div>
+      <div class="player-hud"><div class="player-role" id="player-role">C</div><div><div class="player-title"><b id="player-number">#29</b><strong id="player-name"></strong><span id="possession">GET THE PUCK</span></div><div class="stamina"><i id="stamina-bar"></i></div></div></div>
+      <div class="shot-hud hidden" id="shot-hud"><span>SHOT POWER</span><div><i id="power-bar"></i></div><small id="shot-release-hint">Release SPACE to shoot</small></div>
+      <div class="bottom-actions"><button id="camera">CAMERA <span>Broadcast</span></button><button id="help-game">CONTROLS <kbd>?</kbd></button></div>
+      <div class="keyboard-hints" id="key-hints"><span><kbd>W A S D</kbd> Skate</span><span><kbd>SPACE</kbd> Hold to shoot</span><span><kbd>X</kbd> Pass</span><span><kbd>E</kbd> Check</span><span><kbd>Q</kbd> Switch</span><span><kbd>SHIFT</kbd> Sprint</span></div>
+    </section>
+    <div id="touch-controls" class="hidden"><div id="joystick" aria-label="Drag to skate"><div id="joystick-knob"></div><span>SKATE</span></div><div class="touch-buttons"><button data-touch="switch" class="touch-small">SWITCH</button><button data-touch="sprint" class="touch-small">SPRINT</button><button data-touch="check">CHECK</button><button data-touch="pass">PASS</button><button data-touch="shoot" class="touch-shot">SHOOT</button></div></div>
+    <section id="cinematic" class="hidden" aria-label="Cinematic introduction">
+      <div class="cinema-bar top"></div><div class="cinema-bar bottom"></div><div class="cinema-grain"></div>
+      <div id="cinema-copy"><span id="cinema-kicker">RINK 26 PRESENTS</span><h2 id="cinema-title">THE ICE<br>IS YOURS.</h2><p id="cinema-detail"></p><div id="cinema-teams"><img id="cinema-home" alt="Home team"><span>VS</span><img id="cinema-away" alt="Away team"></div></div>
+      <div class="cinema-bottom"><button id="intro-sound">ENABLE SOUND</button><div class="cinema-timeline"><i id="cinema-progress"></i></div><button id="skip-intro">SKIP INTRO <kbd>ESC</kbd></button></div>
+    </section>
+    <div id="modal-layer" class="hidden"><section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"></section></div>
+    <div id="toast" class="hidden" role="status"></div>
+    <div id="loading"><div class="wordmark">RINK<span>26</span></div><span>PREPARING THE ICE</span><i></i></div>
+    <noscript>This game needs JavaScript enabled to run.</noscript>
+  </main>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
