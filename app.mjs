@@ -1,5 +1,6 @@
 import { TEAMS, clamp } from './engine.mjs';
 import { HockeyGamePlus as HockeyGame } from './upgrade-engine.mjs';
+import { CompatibilityRenderer } from './fallback-render.mjs';
 import { installExpansion } from './expansion-ui.mjs';
 let expansion=null;
 import { RinkRenderer } from './render.mjs';
@@ -191,8 +192,9 @@ function frame(t){const dt=Math.min((t-(rafLast||t))/1000,.05);rafLast=t;accumul
   view.render(dt);uiClock+=dt;if(uiClock>.06){syncUI();uiClock=0;}requestAnimationFrame(frame);
 }
 expansion=installExpansion({game,audio,showModal,hideModal,toast,start,setMode,returnToMenu,passKey:()=>keyLabel(controls.maps.skater.pass),setTeams:(h,a)=>{$('home-team').value=h;$('away-team').value=a;updateTeams();}});
-try{view=new RinkRenderer($('rink'),game);$('loading').classList.add('hidden');refreshPlayerPicker();refreshHints();beginIntro('opening');void rosterStore.init();requestAnimationFrame(frame);}catch(error){
-  console.error(error);$('loading').innerHTML='<div class="wordmark">RINK<span>26</span></div><span>3D GRAPHICS COULD NOT START</span><p style="max-width:360px;padding:0 25px;text-align:center;color:#a8bacb">Enable hardware acceleration in your browser, then reload the game.</p><button class="primary" style="width:200px" id="reload">TRY AGAIN</button>';$('reload').onclick=()=>location.reload();
+function runGame(){ $('loading').classList.add('hidden');refreshPlayerPicker();refreshHints();beginIntro('opening');void rosterStore.init();requestAnimationFrame(frame);}
+try{view=new RinkRenderer($('rink'),game);runGame();}catch(error){
+  console.error(error);$('loading').innerHTML='<div class="wordmark">RINK<span>26</span></div><span>3D GRAPHICS COULD NOT START</span><p style="max-width:360px;padding:0 25px;text-align:center;color:#a8bacb">Enable hardware acceleration and reload for 3D, or use the playable 2D compatibility view.</p><button class="primary" style="width:200px" id="reload">TRY AGAIN</button><button class="secondary" id="compatibility">PLAY IN 2D</button>';$('reload').onclick=()=>location.reload();$('compatibility').onclick=()=>{view=new CompatibilityRenderer($('rink'),game);runGame();};
 }
 // WebMCP shares the same state and actions as the visible game controls.
 if(document.modelContext?.registerTool){
