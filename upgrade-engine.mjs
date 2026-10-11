@@ -16,7 +16,7 @@ export class HockeyGamePlus extends HockeyGame {
  applyPenalties(){for(const p of this.players)p.active=!(this.penalties??[]).some(n=>n.id===p.id&&n.time>0);if(this.players[this.selected]?.active===false)this.selected=this.players.find(p=>p.team===0&&!p.goalie&&p.active)?.id??5;}
  drawFaceoff(){if(this.mode!=='faceoff'||this.settings.playerMode==='goalie')return false; if(this.faceoffTap===null){this.faceoffTap=this.phaseTimer;this.emit('drawtiming',{good:this.phaseTimer<=.32&&this.phaseTimer>=0});}return true;}
  whistle(message,zone){this.ruleMessage=message;this.faceoff(true,zone);this.emit('whistle',{message});}
- check(p=this.players[this.selected]){const victim=this.players.find(q=>q.active!==false&&q.team!==p.team&&!q.goalie&&dist(p,q)<5);const illegal=this.settings.rules&&victim&&this.puck.owner!==victim.id&&dist(victim,this.puck)>5;const hit=super.check(p);if(hit&&p.custom&&p.style==='power'&&victim){victim.stun+=.35;victim.vx*=1.15;victim.vz*=1.15;}if(hit&&illegal){this.penalties.push({id:p.id,team:p.team,time:30});this.whistle('INTERFERENCE · 30 SECOND MINOR',{x:p.team===0?-36:36,z:p.z>=0?12:-12});this.emit('penalty',{team:p.team});}return hit;}
+ check(p=this.players[this.selected]){const victim=this.players.find(q=>q.active!==false&&q.team!==p.team&&!q.goalie&&dist(p,q)<5);const illegal=this.settings.rules&&this.penalties.filter(n=>n.team===p.team).length<2&&victim&&this.puck.owner!==victim.id&&dist(victim,this.puck)>5;const hit=super.check(p);if(hit&&p.custom&&p.style==='power'&&victim){victim.stun+=.35;victim.vx*=1.15;victim.vz*=1.15;}if(hit&&illegal){this.penalties.push({id:p.id,team:p.team,time:30});this.whistle('INTERFERENCE · 30 SECOND MINOR',{x:p.team===0?-36:36,z:p.z>=0?12:-12});this.emit('penalty',{team:p.team});}return hit;}
  move(p,ax,az,dt,speed=16){
   if(p.active===false)return;const profile=p.custom?p.style:null;speed*=profile==='speedster'?1.1:profile==='power'?.96:1;
   const stopping=p.id===this.selected&&this.lastInput?.stop;
@@ -45,7 +45,7 @@ export class HockeyGamePlus extends HockeyGame {
  freezePuck(p=this.players[5]){if(this.drill&&p.goalie){if(this.puck.owner===p.id||(this.puck.owner===null&&dist(p,this.puck)<3.1&&this.puck.y<1.5)){this.finishAttempt(false);return true;}return false;}return super.freezePuck(p);}
  goalieAction(action){if(action==='dive'&&this.mode==='play'&&this.settings.playerMode==='goalie'&&this.stamina>.4){const p=this.players[5];p.slide=.65;p.glove=.65;p.vz=Math.sign(this.puck.z-p.z||1)*30;this.stamina-=.4;this.diveTime=.65;this.emit('slide');return true;}return super.goalieAction(action);}
  manualGoalie(p,dt,input){super.manualGoalie(p,dt,input);if(this.diveTime>0){this.diveTime-=dt;p.butterfly=false;p.glove=Math.max(p.glove,.1);}}
- updatePuck(dt){const old={x:this.puck.x,z:this.puck.z};super.updatePuck(dt);if(this.mode!=='play')return;
+ updatePuck(dt){const old={x:this.puck.x,z:this.puck.z,lastOwner:this.puck.lastOwner};super.updatePuck(dt);if(this.puck.lastOwner!==old.lastOwner)this.icing=null;if(this.mode!=='play')return;
   const k=this.puck;
   if(this.settings.rules&&!this.drill){const team=k.owner!==null?this.players[k.owner].team:k.lastTeam;if(team!==null&&team!==undefined){const dir=team===0?1:-1;
    if(old.x*dir<=22&&k.x*dir>22&&this.players.some(p=>p.active!==false&&p.team===team&&!p.goalie&&p.id!==k.owner&&p.x*dir>23)){this.whistle('OFFSIDE',{x:18*dir,z:Math.sign(k.z||1)*12});return;}
@@ -73,7 +73,7 @@ export class HockeyGamePlus extends HockeyGame {
   this.puck.owner=carrier.id;this.puck.x=carrier.x;this.puck.z=carrier.z;this.puck.y=.23;this.puck.vx=this.puck.vz=this.puck.vy=0;this.puck.lock=0;this.puck.shot=false;this.target={z:(d.attempt%2?1:-1)*2.8};this.rosterVersion++;
  }
  finishAttempt(scored=false){const d=this.drill;if(!d||d.stage==='pause'||d.stage==='done')return;
-  if(d.type==='goaliePractice'&&!scored&&this.score[1]===d.conceded)d.success++;d.stage='pause';this.phaseTimer=1.4;this.mode='frozen';
+  if(d.type==='goaliePractice'&&!scored&&this.score[1]===d.conceded&&this.stats.saves[0]>(d.savedAtStart??0))d.success++;d.stage='pause';this.phaseTimer=1.4;this.mode='frozen';
   if(d.type==='shootout'){d.attempts[d.turn]++;d.turn=1-d.turn;}
  }
  updateDrill(dt,input){const d=this.drill;
@@ -82,7 +82,7 @@ export class HockeyGamePlus extends HockeyGame {
    const finished=d.type==='shootout'?d.attempts[0]>=3&&d.attempts[0]===d.attempts[1]&&d.goals[0]!==d.goals[1]:d.type==='skating'?d.gate>=8||d.time>=60:d.type==='passing'?d.success>=10||d.time>=60:d.attempt>=d.total;
    if(finished){d.stage='done';this.mode='final';this.emit('final');return;}if(d.type==='passing'){d.stage='live';this.mode='play';return;}this.beginAttempt();return;
   }
-  if(this.mode==='faceoff'){this.phaseTimer-=dt;if(this.phaseTimer<=0){this.mode='play';d.stage='live';d.conceded=this.score[1];this.emit('puckdrop');}return;}
+  if(this.mode==='faceoff'){this.phaseTimer-=dt;if(this.phaseTimer<=0){this.mode='play';d.stage='live';d.conceded=this.score[1];d.savedAtStart=this.stats.saves[0];this.emit('puckdrop');}return;}
   if(this.mode!=='play')return;d.time+=dt;this.clock=Math.max(0,(d.type==='skating'||d.type==='passing'?60:12)-d.time);
   // Keep base regulation/intermission logic out of drills.
   const clock=this.clock;this.clock=999;super.update(dt,input);this.clock=clock;
