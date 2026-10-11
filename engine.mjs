@@ -58,7 +58,7 @@ export class HockeyGame {
   switchPlayer() {
     if(this.settings.playerMode==='goalie'){this.selected=5;return;}
     if(this.puck.owner!==null&&this.players[this.puck.owner].team===0){this.selected=this.puck.owner;return;}
-    const skaters=this.players.filter(p=>p.team===0&&!p.goalie&&p.id!==this.selected);
+    const skaters=this.players.filter(p=>p.active!==false&&p.team===0&&!p.goalie&&p.id!==this.selected);
     skaters.sort((a,b)=>distance(a,this.puck)-distance(b,this.puck)); if(skaters[0])this.selected=skaters[0].id;
     this.charge=0;this.emit('switch');
   }
@@ -75,12 +75,12 @@ export class HockeyGame {
   pass(player=this.players[this.selected],input={x:0,z:0}) {
     if(this.mode!=='play'||this.puck.owner!==player.id||player.stun>0)return false;
     const direction=norm(input.x,input.z);const hasDirection=Math.hypot(input.x,input.z)>.2;
-    const teammates=this.players.filter(p=>p.team===player.team&&!p.goalie&&p.id!==player.id);
+    const teammates=this.players.filter(p=>p.active!==false&&p.team===player.team&&!p.goalie&&p.id!==player.id);
     let best=null,bestScore=-Infinity;
     for(const mate of teammates){
       const d=distance(player,mate),n=norm(mate.x-player.x,mate.z-player.z);
       let score=hasDirection?(n.x*direction.x+n.z*direction.z)*30-d*.2:(mate.x-player.x)*(player.team===0?1:-1)*.28-d*.22;
-      const openness=Math.min(...this.players.filter(p=>p.team!==player.team&&!p.goalie).map(p=>distance(p,mate)));
+      const openness=Math.min(...this.players.filter(p=>p.active!==false&&p.team!==player.team&&!p.goalie).map(p=>distance(p,mate)));
       score+=Math.min(openness,15)*.35;if(score>bestScore){best=mate;bestScore=score;}
     }
     if(!best)return false;
@@ -98,7 +98,7 @@ export class HockeyGame {
     if(this.mode!=='play'||player.cooldown>0||player.stun>0)return false;
     player.cooldown=.85;player.action=.35;
     player.vx+=player.fx*7;player.vz+=player.fz*7;
-    const opponents=this.players.filter(p=>p.team!==player.team&&!p.goalie&&distance(player,p)<5);
+    const opponents=this.players.filter(p=>p.active!==false&&p.team!==player.team&&!p.goalie&&distance(player,p)<5);
     const nearest=opponents.sort((a,b)=>distance(player,a)-distance(player,b))[0];
     if(nearest){const n=norm(nearest.x-player.x,nearest.z-player.z);nearest.vx+=n.x*17;nearest.vz+=n.z*17;nearest.stun=.85;
       if(this.puck.owner===nearest.id){this.release(nearest,n.x*19,n.z*19);this.puck.lock=.12;}
@@ -157,7 +157,7 @@ export class HockeyGame {
       tx=clamp(owner.x+dir*advance,-42,42);tz=lanes[p.slot]+owner.z*.16;
       if(distance(p,owner)<6)tz+=(p.slot%2?1:-1)*8;
     }else{
-      const teammates=this.players.filter(q=>q.team===p.team&&!q.goalie);
+      const teammates=this.players.filter(q=>q.active!==false&&q.team===p.team&&!q.goalie);
       const target=owner??this.puck;teammates.sort((a,b)=>distance(a,target)-distance(b,target));
       const rank=teammates.indexOf(p);
       if(rank===0||(rank===1&&!owner)){tx=target.x+(owner?owner.vx*.13:0);tz=target.z+(owner?owner.vz*.13:0);speed*=1.07;
@@ -231,13 +231,14 @@ export class HockeyGame {
     if(this.settings.playerMode!=='goalie'&&input.shoot&&this.puck.owner===this.selected)this.charge=clamp(this.charge+dt*.8,0,1);
     else if(this.charge>0){if(this.puck.owner===this.selected)this.shoot(Math.max(.22,this.charge),controlled,input.aim??null);this.charge=0;}
     for(const p of this.players){
+      if(p.active===false)continue;
       if(p.id===this.selected&&p.goalie){this.manualGoalie(p,dt,input);}
       else if(p.id===this.selected){if(p.stun>0)this.move(p,0,0,dt,0);else this.move(p,input.x??0,input.z??0,dt,sprint?23:16.8);}
       else this.ai(p,dt);
     }
     // Soft, equal-mass body contact allows checks without trapping skaters.
     for(let i=0;i<this.players.length;i++)for(let j=i+1;j<this.players.length;j++){
-      const a=this.players[i],b=this.players[j];if(a.goalie||b.goalie)continue;
+      const a=this.players[i],b=this.players[j];if(a.active===false||b.active===false||a.goalie||b.goalie)continue;
       const d=distance(a,b);if(d<2.35&&d>.01){const n=norm(b.x-a.x,b.z-a.z),push=(2.35-d)*.5;a.x-=n.x*push;a.z-=n.z*push;b.x+=n.x*push;b.z+=n.z*push;
         if(a.team!==b.team&&this.puck.owner!==null){const holder=this.players[this.puck.owner],other=holder===a?b:holder===b?a:null;
           if(other&&holder.cooldown<=0&&other.cooldown<=0&&this.random()<dt*.6){this.release(holder,n.x*9,n.z*9);other.cooldown=.45;}
@@ -255,7 +256,7 @@ export class HockeyGame {
     const oldX=k.x,oldZ=k.z;k.x+=k.vx*dt;k.z+=k.vz*dt;
     k.y+=k.vy*dt;k.vy-=dt*12;if(k.y<.23){k.y=.23;k.vy=Math.abs(k.vy)>.65?-k.vy*.28:0;}
     const friction=Math.exp(-dt*.22);k.vx*=friction;k.vz*=friction;
-    for(const goalie of this.players.filter(p=>p.goalie)){
+    for(const goalie of this.players.filter(p=>p.active!==false&&p.goalie)){
       if(k.lock>0&&k.lastOwner===goalie.id)continue;
       // Swept intersection prevents a fast slapshot tunnelling through the goalie.
       const dx=k.x-oldX,dz=k.z-oldZ,len2=dx*dx+dz*dz;
@@ -268,7 +269,7 @@ export class HockeyGame {
         const dir=goalie.team===0?1:-1;const shot=k.lastTeam!==goalie.team&&k.shot;
         if(shot)this.stats.saves[goalie.team]++;goalie.action=.4;this.emit('save',{team:goalie.team,manual});
         if(manual&&goalie.glove>0){Object.assign(k,{owner:goalie.id,vx:0,vz:0,vy:0,lock:.25,shot:false,lastTeam:goalie.team});goalie.holdTime=0;return;}
-        k.x=goalie.x+dir*2.8;k.z=goalie.z+(this.random()-.5)*2;k.vx=dir*(13+this.random()*10);k.vz=(this.random()-.5)*20;k.vy=1;k.lock=.28;k.lastOwner=goalie.id;k.shot=false;
+        k.x=goalie.x+dir*2.8;k.z=goalie.z+Math.sign(k.z-goalie.z||1)*1.8;k.vx=dir*(9+this.random()*8);k.vz=Math.sign(k.z-goalie.z||1)*(12+this.random()*7);k.vy=1;k.lock=.28;k.lastOwner=goalie.id;k.shot=false;
       }
     }
     for(const sign of [-1,1]){
@@ -284,7 +285,7 @@ export class HockeyGame {
     }
     const bx=k.vx,bz=k.vz;this.bounds(k,.22,.77);if((bx*k.vx<0||bz*k.vz<0)&&Math.hypot(bx,bz)>13)this.emit('board');
     if(k.y<1.8){
-      const candidates=this.players.filter(p=>!p.goalie&&p.stun<=0&&!(k.lock>0&&p.id===k.lastOwner)&&distance(p,k)<2.3).sort((a,b)=>distance(a,k)-distance(b,k));
+      const candidates=this.players.filter(p=>p.active!==false&&!p.goalie&&p.stun<=0&&!(k.lock>0&&p.id===k.lastOwner)&&distance(p,k)<2.3).sort((a,b)=>distance(a,k)-distance(b,k));
       const p=candidates[0];if(p){
         const movingFast=Math.hypot(k.vx,k.vz)>33;
         if(movingFast&&k.shot&&p.team!==k.lastTeam){k.vx*=-.38;k.vz+=p.z>k.z?-7:7;k.lock=.12;k.lastOwner=p.id;k.shot=false;this.emit('block');}

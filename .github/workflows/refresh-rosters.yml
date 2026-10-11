@@ -1,0 +1,39 @@
+name: Refresh NHL rosters
+on:
+  schedule:
+    - cron: '23 9 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/refresh-rosters.yml'
+      - 'scripts/refresh-rosters.mjs'
+permissions:
+  contents: write
+  pages: write
+concurrency:
+  group: roster-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Refresh all official current rosters
+        run: node scripts/refresh-rosters.mjs
+      - name: Run game regression checks
+        run: node --test tests/*.test.mjs
+      - name: Save verified snapshot
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add rosters.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Refresh all 32 NHL current rosters'
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
+      - name: Request Pages rebuild after bot commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"

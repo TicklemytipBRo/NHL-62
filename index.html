@@ -13,7 +13,7 @@
     <div class="vignette"></div>
     <header class="topbar"><a class="wordmark" href="./" aria-label="RINK 26 home">RINK<span>26</span><i></i></a><div class="edition">VERY BAD GAMES <span>/</span> HOCKEY</div><div class="top-actions"><button id="sound" class="icon-button" aria-label="Mute audio" title="Sound on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path class="waves" d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button><button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button><button id="pause" class="icon-button hidden" aria-label="Pause match" title="Pause (Esc)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg></button></div></header>
     <section id="menu" class="menu">
-      <div class="menu-heading"><div class="eyebrow"><span class="live-dash"></span> 32 NHL TEAMS / LIVE ROSTERS</div><h1>TAKE<br>THE <em>ICE.</em></h1><p>Every team. Every shift. Your ice.</p></div>
+      <div class="menu-heading"><div class="eyebrow"><span class="live-dash"></span> 32 NHL TEAMS / DAILY ROSTERS</div><h1>TAKE<br>THE <em>ICE.</em></h1><p>Every team. Every shift. Your ice.</p></div>
       <div class="match-card">
         <div class="card-header"><span>QUICK MATCH</span><span class="pill">NHL EDITION</span></div><div class="mode-toggle" role="group" aria-label="Play mode"><button id="mode-skater" class="active" aria-pressed="true">SKATER MODE</button><button id="mode-goalie" aria-pressed="false">GOALIE MODE</button></div><p id="mode-description">Control your skaters. Build the play.</p>
         <div class="matchup">
@@ -26,7 +26,7 @@
         <div class="card-note"><span id="mode-note">YOU ATTACK RIGHT</span><span>3 PERIODS + OVERTIME</span></div><div class="sync-summary"><button id="all-rosters">NHL PLAYER DIRECTORY</button><button id="sync-now">SYNC</button><span id="roster-status" aria-live="polite">Loading all 32 rosters…</span></div>
       </div>
       <div class="menu-links"><button class="controls-link" id="how-to">Customize controls <span>?</span></button><button class="controls-link" id="replay-intro">Replay intro <span>▶</span></button></div>
-      <div class="menu-footer"><span>01 / EXHIBITION</span><span>UNOFFICIAL FAN GAME · NHL ROSTER DATA</span></div>
+      <div class="menu-footer"><span>UPDATE 2 / SEASONS + SKILLS</span><span>UNOFFICIAL FAN GAME · NHL ROSTER DATA</span></div>
     </section>
     <section id="hud" class="hidden" aria-label="Match scoreboard">
       <div class="scoreboard"><div class="score-team home-score"><span class="score-abbr" id="home-abbr">EDM</span><strong id="home-score">0</strong></div><div class="score-clock"><span id="period-label">1ST</span><b id="clock">1:00</b></div><div class="score-team away-score"><strong id="away-score">0</strong><span class="score-abbr" id="away-abbr">CGY</span></div></div>
@@ -48,6 +48,6 @@
     <div id="loading"><div class="wordmark">RINK<span>26</span></div><span>PREPARING THE ICE</span><i></i></div>
     <noscript>This game needs JavaScript enabled to run.</noscript>
   </main>
-  <script type="module" src="./app.mjs"></script>
+  <script type="module" src="./bootstrap.mjs?v=expansion-2"></script>
 </body>
 </html>

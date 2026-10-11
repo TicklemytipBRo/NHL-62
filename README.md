@@ -1,30 +1,51 @@
-# RINK 26 — NHL roster and goalie update
+# RINK 26 — The Next Shift
 
-An unofficial 3D browser hockey game with all 32 NHL teams. Team marks and player information belong to their respective owners. It is not an EA or NHL product.
+Unofficial browser hockey game. Play: https://ticklemytipbro.github.io/NHL-62/
 
-## What's included
+## Update 2
 
-- An 18-second real-time cinematic at launch and before each match, with arena camera cuts, team introductions, soundtrack, skip, replay, and reduced-motion handling.
-- All players in all 32 official current NHL roster feeds, without roster truncation. The bundled 2026-10-10 snapshot contains 773 unique players. Current feeds may include reserves or injured players but are not a historical or all-prospect database.
-- Same-origin roster API, automatic refresh at launch and every 15 minutes while open, manual sync, per-team timestamps, and dated fallback data. Active matches retain their starting roster snapshot.
-- Searchable player directory with real names, numbers, positions, handedness, height, weight, and portraits. Every listed skater and goalie is selectable. Skater line rotations reach the entire bench.
-- Independently saved, remappable keyboard controls for skater and goalie modes. Duplicate bindings swap; Escape stays reserved. Touch controls change with the mode.
-- A locked goalie mode with a view from behind the home net, manual movement, butterfly, lateral slides, glove catches, poke checks, freezes, passing, and recentering. Teammates are AI controlled. Freezes produce a defensive-zone faceoff.
+- Skating momentum, carving turns and a dedicated hockey stop; directional goalie rebounds.
+- AI support players seek space and defenders shade passing lanes.
+- Wrist, slap and snap shots, horizontal/height aiming, and one-timers on pass receipt.
+- Goalie shot-arrival marker, desperation dive and a 12-shot practice drill.
+- Optional **arcade rules**: immediate offside, automatic icing, interference minors lasting 30 gameplay seconds, short-handed play and timed faceoff draws. This is not the full NHL rulebook.
+- Three-second goal recordings replayed at half speed, with skip; browser-voice event commentary, captions and reactive crowd sound. Speech availability depends on browser voices.
+- Saved custom player: name, number, handedness, helmet/stick/pad colors and four play styles. Replaces your starting center or goalie without modifying official roster data.
+- A saved **31-game custom season**, all 32 teams, simulated results for other games, standings and schedule. Top 16 enter four best-of-three playoff rounds. Progress saves after completed matches on this browser; leaving an unfinished game replays that fixture. This is not the official NHL schedule or playoff seeding format.
+- Shootout (three attempts each then sudden death), goalie practice, target shooting, passing and skating challenges.
+- Daily scheduled complete roster refresh from official NHL current roster feeds. No player count cap; all records in those feeds are retained. Retired players and prospects outside the feeds are not included. A failed refresh keeps the previous complete snapshot.
 
-## Default controls
+## Controls
 
-Skater: WASD move, Space hold/release shot, X pass, E check, Q switch, Shift sprint, F next line, C camera, P/Escape pause.
+Existing skater/goalie controls remain remappable in **Customize controls**. Added defaults:
 
-Goalie: WASD move relative to the goalie camera, Space hold butterfly, Q/E slide left/right, Shift glove, F poke, R freeze, X clear, Z hold recenter, C camera, P/Escape pause.
+| Action | Key |
+| --- | --- |
+| Hockey stop (hold) | B |
+| Cycle wrist / slap / snap shot | T |
+| Aim left / right | Left / Right arrows |
+| Raise / lower shot | Up / Down arrows |
+| One-timer on receiving a pass (hold) | R |
+| Win faceoff: tap just before countdown ends | X (pass) |
+| Goalie desperation dive | V |
+| Skip replay | Space / Enter / Escape |
 
-## Structure
+Custom style effects: speedster +10% skating speed; sniper +6% shot speed; power +15% check impulse and longer stun with -4% skating speed; balanced is neutral.
 
-The Vinext root redirects to `/game/index.html`. The original game is preserved in `public/game/`. `/api/nhl/roster/[team]` reads only whitelisted official NHL roster feeds and caches each roster for 15 minutes. No external proxy service or API key is required.
+## Running locally
 
-`public/game/engine.mjs` contains the hockey simulation. `controls.mjs`, `roster-store.mjs`, `render.mjs`, `audio.mjs`, and `app.mjs` own their respective game features. `scripts/sync-nhl.mjs` refreshes the checked-in fallback data and team logos and respects upstream rate limits.
+The playable build is the static files at repository root, plus `vendor/` and `logos/`. Preserve these folders. From this directory, serve with a local static server (for example `python -m http.server 8000`) and open `http://localhost:8000`. Direct `file://` opening does not support the module/data loading used by the game.
 
-The three regulation periods, overtime, rink, puck rebounds, and checks remain arcade simulations; the game does not implement the full NHL rulebook or licensed player ratings.
+No npm install or framework build is required for GitHub Pages. Framework files from the original upload are retained but not used by this static build.
 
-## Validation
+## Roster workflow
 
-All 773 snapshot players were checked for individual selection; all bench skaters were reached by line rotation. Simulation checks cover goalie lock, movement, lateral slides, low/high save distinction, glove catch and clearing, freeze/faceoff, control conflicts and persistence, upstream errors and cached fallbacks. Full matches completed in both modes at all three difficulty settings. Production build verified. Browser visual/audio QA was unavailable in the environment.
+`.github/workflows/refresh-rosters.yml` runs daily at **09:23 UTC**, can be run manually in GitHub Actions, and also runs when its workflow or sync script changes. GitHub may delay scheduled jobs. It fetches all 32 feeds, validates them, runs tests, commits `rosters.json`, and explicitly requests a Pages rebuild (bot commits do not themselves trigger Pages builds). The workflow needs contents/write and pages/write permissions. After a published refresh, the game's SYNC button or its 15-minute polling reads that snapshot; it does not query NHL live from the browser.
+
+## Checks
+
+`node --test tests/*.test.mjs`
+
+Covers complete drill lifecycles, shootout rounds, faceoff timing, penalties, offsides/icing, one-timers, replay restoration, player settings, control migration, schedule integrity and complete season/playoff progression.
+
+Team marks and player information belong to their respective owners. This is not an EA or NHL product. Three.js license: `vendor/LICENSE.txt`.
