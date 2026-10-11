@@ -263,13 +263,13 @@ export class HockeyGame {
       const t=len2?clamp(((goalie.x-oldX)*dx+(goalie.z-oldZ)*dz)/len2,0,1):0;
       const cx=oldX+t*dx,cz=oldZ+t*dz;
       const manual=this.settings.playerMode==='goalie'&&goalie.team===0;
-      const reach=manual?(goalie.butterfly?2.65:goalie.glove>0?2.3:1.65)+(goalie.slide>0?.4:0):1.75;
-      const saveHeight=manual?(goalie.butterfly?1.35:goalie.glove>0?4.1:2.9):2.7;
+      const reach=(manual&&this.settings.pro?(this.settings.pro.attributes.goalie-65)*.012:0)+(goalie.butterfly?2.55:goalie.glove>0?2.35:1.65)+(goalie.slide>0?.35:0);
+      const saveHeight=goalie.butterfly?1.4:goalie.glove>0?4.1:2.85;
       if(Math.hypot(cx-goalie.x,cz-goalie.z)<reach&&k.y<saveHeight&&k.lock<=0){
         const dir=goalie.team===0?1:-1;const shot=k.lastTeam!==goalie.team&&k.shot;
         if(shot)this.stats.saves[goalie.team]++;goalie.action=.4;this.emit('save',{team:goalie.team,manual});
-        if(manual&&goalie.glove>0){Object.assign(k,{owner:goalie.id,vx:0,vz:0,vy:0,lock:.25,shot:false,lastTeam:goalie.team});goalie.holdTime=0;return;}
-        k.x=goalie.x+dir*2.8;k.z=goalie.z+Math.sign(k.z-goalie.z||1)*1.8;k.vx=dir*(9+this.random()*8);k.vz=Math.sign(k.z-goalie.z||1)*(12+this.random()*7);k.vy=1;k.lock=.28;k.lastOwner=goalie.id;k.shot=false;
+        if((goalie.glove>0&&k.y>1.1)||(Math.hypot(k.vx,k.vz)<23&&k.y>1.1)){Object.assign(k,{owner:goalie.id,vx:0,vz:0,vy:0,lock:.25,shot:false,lastTeam:goalie.team});goalie.holdTime=0;return;}
+        k.x=goalie.x+dir*2.8;k.z=goalie.z+Math.sign(k.z-goalie.z||1)*1.8;const energy=clamp(Math.hypot(k.vx,k.vz)*.35,7,26);k.vx=dir*energy*.6;k.vz=Math.sign(k.z-goalie.z||1)*energy*.85+goalie.vz*.25;k.vy=goalie.butterfly?.3:1.1;k.lock=.28;k.lastOwner=goalie.id;k.shot=false;
       }
     }
     for(const sign of [-1,1]){

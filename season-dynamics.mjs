@@ -1,0 +1,5 @@
+// Fictional ratings generated per save; these are game balance, not NHL rankings.
+export function seedDynamics(c,random=Math.random){if(!c.dynamics)c.dynamics=Array.from({length:32},()=>({attack:.8+random()*.4,defense:.8+random()*.4,form:0,streak:0,injury:0}));return c.dynamics;}
+function poisson(mean,random){let p=1,n=0;do{p*=Math.max(.00001,random());n++;}while(p>Math.exp(-mean)&&n<16);return n-1;}
+export function simulateFixture(c,pair,random=Math.random){const d=seedDynamics(c,random),[a,b]=pair.map(i=>d[i]);const strength=(x,y)=>Math.max(1.2,2.8*x.attack/y.defense+x.form*.12-x.injury*.18);let score=[poisson(strength(a,b)+.18,random),poisson(strength(b,a),random)];const overtime=score[0]===score[1];if(overtime)score[random()<.5?0:1]++;return{score,overtime};}
+export function updateForm(c,pair,score,random=Math.random){const d=seedDynamics(c,random);pair.forEach((team,i)=>{const p=d[team],win=score[i]>score[1-i];p.form=Math.max(-4,Math.min(4,p.form+(win?1:-1)));p.streak=win?Math.max(0,p.streak)+1:Math.min(0,p.streak)-1;p.injury=Math.max(0,p.injury-1);if(random()<.035)p.injury=2+Math.floor(random()*3);});}

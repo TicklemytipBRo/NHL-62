@@ -1,6 +1,7 @@
 import { TEAMS, clamp } from './engine.mjs';
-import { HockeyGamePlus as HockeyGame } from './upgrade-engine.mjs';
-import { CompatibilityRenderer } from './fallback-render.mjs';
+import { EliteGame as HockeyGame } from './elite-engine.mjs';
+import {installElite} from './elite-ui.mjs';
+import {customizeRoster,teamPresentation,teamPack} from './team-builder.mjs';
 import { installExpansion } from './expansion-ui.mjs';
 let expansion=null;
 import { RinkRenderer } from './render.mjs';
@@ -40,14 +41,14 @@ function toast(text){$('toast').textContent=text;$('toast').classList.remove('hi
 function resetInput(){keys.clear();touch.x=touch.z=0;touch.shoot=touch.sprint=touch.butterfly=touch.recenter=touch.stop=touch.oneTimer=false;game.charge=0;$('joystick-knob').style.transform='';document.querySelectorAll('.touch-buttons button').forEach(b=>b.classList.remove('active'));}
 function start(type="exhibition"){
   if(typeof type!=="string")type="exhibition";
-  if(!view)return;const h=rosterStore.get(TEAMS[home].short),a=rosterStore.get(TEAMS[away].short);if(!h||!a){toast('Wait for both team rosters to load');return;}
+  if(!view){toast('Enable graphics acceleration and reload to play in 3D.');return;}const h=rosterStore.get(TEAMS[home].short),a=rosterStore.get(TEAMS[away].short);if(!h||!a){toast('Wait for both team rosters to load');return;}
   audio.unlock().catch(()=>{});resetInput();hideModal();
-  game.start({...expansion.options(type),home,away,difficulty:$('difficulty').value,periodLength:Number($('period-length').value),playerMode,homeSkater:chosenSkaters[TEAMS[home].short],homeGoalie:chosenGoalies[TEAMS[home].short],awaySkater:chosenSkaters[TEAMS[away].short],awayGoalie:chosenGoalies[TEAMS[away].short]},[h.players,a.players]);
-  view.rebuildPlayers();$('camera').querySelector('span').textContent=playerMode==='goalie'?'Goalie':view.cameraMode==='broadcast'?'Broadcast':'Follow';$('menu').classList.add('hidden');$('hud').classList.add('hidden');$('pause').classList.add('hidden');document.body.classList.add('playing');document.body.classList.toggle('goalie-mode',playerMode==='goalie');$('touch-controls').classList.add('hidden');$('start').blur();previousMode='';refreshHints();beginIntro('match');
+  const matchOptions=expansion.options(type);game.start({...matchOptions,home,away,difficulty:$('difficulty').value,periodLength:Number($('period-length').value),playerMode,homeSkater:chosenSkaters[TEAMS[home].short],homeGoalie:chosenGoalies[TEAMS[home].short],awaySkater:chosenSkaters[TEAMS[away].short],awayGoalie:chosenGoalies[TEAMS[away].short]},[customizeRoster(h.players,matchOptions.club),a.players]);
+  view.rebuildPlayers();$('home-abbr').textContent=teamPresentation(game.settings,0,TEAMS).short;$('camera').querySelector('span').textContent=playerMode==='goalie'?'Goalie':view.cameraMode==='broadcast'?'Broadcast':'Follow';$('menu').classList.add('hidden');$('hud').classList.add('hidden');$('pause').classList.add('hidden');document.body.classList.add('playing');document.body.classList.toggle('goalie-mode',playerMode==='goalie');$('touch-controls').classList.add('hidden');$('start').blur();previousMode='';refreshHints();beginIntro('match');
 }
 function beginIntro(kind='opening'){
   if(!view)return;hideModal();resetInput();intro={kind,time:0};introPhase=-1;game.mode='intro';view.cinematic={time:0};$('cinematic').classList.remove('hidden');document.body.classList.add('watching-intro');$('cinema-home').src=TEAMS[home].logo;$('cinema-home').alt=TEAMS[home].fullName;$('cinema-away').src=TEAMS[away].logo;$('cinema-away').alt=TEAMS[away].fullName;
-  if(kind==='match')audio.cinematic();$('skip-intro').focus();
+  if(kind==='match'){audio.cinematic();expansion.intro();}$('skip-intro').focus();
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)finishIntro();
 }
 function finishIntro(){
@@ -57,10 +58,10 @@ function finishIntro(){
 }
 function advanceIntro(dt){
   if(!intro)return;intro.time+=dt;view.cinematic.time=intro.time;const phase=Math.min(3,Math.floor(intro.time/4.5));$('cinema-progress').style.width=`${Math.min(100,intro.time/18*100)}%`;
-  if(phase!==introPhase){introPhase=phase;const match=intro.kind==='match',goalie=playerMode==='goalie';const names=[['32 NHL TEAMS','THE LEAGUE.<br>YOUR ICE.','Every shift starts here.'],['OWN THE CREASE',goalie?'THIS IS<br>YOUR NET.':'BUILT FOR<br>THE MOMENT.',match?(game.players[goalie?5:game.selected].name):'Timing. Positioning. Instinct.'],['TONIGHT’S MATCHUP',`${esc(TEAMS[home].name.toUpperCase())}<br><em>VS ${esc(TEAMS[away].name.toUpperCase())}</em>`,`${TEAMS[home].fullName} · ${TEAMS[away].fullName}`],['VERY BAD GAMES PRESENTS','RINK <em>26.</em>',match?(goalie?'Protect the crease.':'Take the ice.'):'Your rink. Your rivalry.']];const [k,title,detail]=names[phase];$('cinema-kicker').textContent=k;$('cinema-title').innerHTML=title;$('cinema-detail').textContent=detail;$('cinema-teams').classList.toggle('hidden',phase!==2);$('cinema-copy').classList.remove('cinema-enter');void $('cinema-copy').offsetWidth;$('cinema-copy').classList.add('cinema-enter');}
-  if(intro.time>=18)finishIntro();
+  if(phase!==introPhase){introPhase=phase;const match=intro.kind==='match',goalie=playerMode==='goalie';const names=[['32 NHL TEAMS','THE LEAGUE.<br>YOUR ICE.','Every shift starts here.'],['OWN THE CREASE',goalie?'THIS IS<br>YOUR NET.':'BUILT FOR<br>THE MOMENT.',match?(game.players[goalie?5:game.selected].name):'Timing. Positioning. Instinct.'],['TONIGHT’S MATCHUP',`${esc(TEAMS[home].name.toUpperCase())}<br><em>VS ${esc(TEAMS[away].name.toUpperCase())}</em>`,`${TEAMS[home].fullName} · ${TEAMS[away].fullName}`],['VERY BAD GAMES PRESENTS','RINK <em>26.</em>',match?(goalie?'Protect the crease.':'Take the ice.'):'Your rink. Your rivalry.']];if(game.settings.club?.enabled){const club=game.settings.club;names[0]=[club.arena.toUpperCase(),esc(club.city.toUpperCase())+'<br>'+esc(club.name.toUpperCase()),teamPack(club).line];names[2]=['TONIGHT’S MATCHUP',esc(club.name.toUpperCase())+'<br><em>VS '+esc(TEAMS[away].name.toUpperCase())+'</em>',club.arena];}const [k,title,detail]=names[phase];$('cinema-kicker').textContent=k;$('cinema-title').innerHTML=title;$('cinema-detail').textContent=detail;$('cinema-teams').classList.toggle('hidden',phase!==2);$('cinema-copy').classList.remove('cinema-enter');void $('cinema-copy').offsetWidth;$('cinema-copy').classList.add('cinema-enter');}
+  if(intro.time>=18&&!expansion.broadcast.introBusy)finishIntro();
 }
-function returnToMenu(){if(intro)finishIntro();hideModal();resetInput();game.mode='menu';$('menu').classList.remove('hidden');$('hud').classList.add('hidden');$('pause').classList.add('hidden');$('touch-controls').classList.add('hidden');document.body.classList.remove('playing','goalie-mode');applyRosterPreview();$('start').focus();}
+function returnToMenu(){game.zamboni=null;if(intro)finishIntro();hideModal();resetInput();game.mode='menu';$('menu').classList.remove('hidden');$('hud').classList.add('hidden');$('pause').classList.add('hidden');$('touch-controls').classList.add('hidden');document.body.classList.remove('playing','goalie-mode');applyRosterPreview();$('start').focus();}
 function hideModal(){ $('modal-layer').classList.add('hidden');$('modal').replaceChildren();modalClose=null;binding=null;rosterDialogTeam=null;$('modal').classList.remove('wide-modal'); }
 function showModal(html,close=null){$('modal').innerHTML=html;$('modal-layer').classList.remove('hidden');modalClose=close;$('modal').querySelector('button')?.focus();resetInput();}
 function showPause(){
@@ -72,13 +73,13 @@ function resume(){hideModal();resetInput();game.resume();$('pause').blur();}
 function showControls(){
   const prior=game.mode;game.pause();controlTab=playerMode;
   const close=()=>{hideModal();refreshHints();if(prior==='paused')showPause();else if(['play','faceoff','goal','frozen'].includes(prior))game.resume();};
-  showModal(`<button class="modal-close" id="close-controls" aria-label="Close controls">×</button><div class="eyebrow">YOUR KEYS. YOUR GAME.</div><h2 id="modal-title">CUSTOMIZE CONTROLS.</h2><div class="control-tabs"><button id="tab-skater">Skater</button><button id="tab-goalie">Goalie</button></div><p class="binding-note" id="binding-note">Click a key, then press its replacement. Conflicts swap automatically.</p><div id="binding-list"></div><p class="controls-tip" id="control-mode-tip"></p><div class="control-footer"><button class="secondary" id="reset-keys">Reset this layout</button><button class="primary" id="controls-done">DONE</button></div><small class="setting-note">Layouts are saved in this browser. Esc always pauses or cancels.</small>`,close);
+  showModal(`<button class="modal-close" id="close-controls" aria-label="Close controls">×</button><div class="eyebrow">YOUR KEYS. YOUR GAME.</div><h2 id="modal-title">CUSTOMIZE CONTROLS.</h2><div class="control-tabs"><button id="tab-skater">Skater</button><button id="tab-goalie">Goalie</button></div><p class="binding-note" id="binding-note">Click a binding, then press a key or mouse button. Conflicts swap automatically.</p><div id="binding-list"></div><p class="controls-tip" id="control-mode-tip"></p><div class="control-footer"><button class="secondary" id="reset-keys">Reset this layout</button><button class="primary" id="controls-done">DONE</button></div><small class="setting-note">Layouts are saved in this browser. Esc always pauses or cancels.</small>`,close);
   $('close-controls').onclick=close;$('controls-done').onclick=close;$('tab-skater').onclick=()=>{binding=null;controlTab='skater';drawBindings();};$('tab-goalie').onclick=()=>{binding=null;controlTab='goalie';drawBindings();};$('reset-keys').onclick=()=>{controls.reset(controlTab);binding=null;drawBindings();refreshHints();};drawBindings();
 }
 function drawBindings(){
   $('tab-skater').classList.toggle('active',controlTab==='skater');$('tab-goalie').classList.toggle('active',controlTab==='goalie');
   $('binding-list').innerHTML=Object.entries(controls.maps[controlTab]).map(([action,key])=>`<div class="bind-row"><span>${LABELS[action]}</span><button data-bind="${action}" aria-label="Change ${LABELS[action]} key">${keyLabel(key)}</button></div>`).join('');
-  $('binding-list').querySelectorAll('[data-bind]').forEach(button=>button.onclick=()=>{binding={mode:controlTab,action:button.dataset.bind};$('binding-note').textContent='Press a new key. Esc cancels.';button.textContent='PRESS KEY…';button.classList.add('listening');});
+  $('binding-list').querySelectorAll('[data-bind]').forEach(button=>button.onclick=()=>{binding={mode:controlTab,action:button.dataset.bind};$('binding-note').textContent='Press a key or mouse button. Esc cancels.';button.textContent='PRESS KEY…';button.classList.add('listening');});
   $('control-mode-tip').textContent=controlTab==='goalie'?'Your movement is relative to the view from behind your net. Butterfly protects low shots; the glove reaches high shots. Slide across the crease, poke nearby pucks, freeze loose pucks, or pass after a catch.':'Hold shoot for power, then release. Pass toward your movement direction. Sprint uses stamina. All roster players can be selected before a match; line changes rotate the bench.';
 }
 function refreshHints(){
@@ -119,22 +120,23 @@ function drawRoster(){
   $('roster-grid').querySelectorAll('[data-player]').forEach(button=>button.onclick=()=>{const code=button.dataset.team,id=Number(button.dataset.player),p=rosterStore.get(code).players.find(p=>p.id===id);if(p.position==='G')chosenGoalies[code]=id;else chosenSkaters[code]=id;if(game.mode==='menu'){home=TEAMS.findIndex(t=>t.short===code);$('home-team').value=home;setMode(p.position==='G'?'goalie':'skater');updateTeams('home');}refreshPlayerPicker();applyRosterPreview();drawRoster();toast(`${p.name} selected for ${TEAMS.find(t=>t.short===code).city}`);});
 }
 function statTable(){return `<table class="stats"><thead><tr><th>${TEAMS[home].short}</th><th>MATCH STATS</th><th>${TEAMS[away].short}</th></tr></thead><tbody><tr><td>${game.stats.shots[0]}</td><td>Shots</td><td>${game.stats.shots[1]}</td></tr><tr><td>${game.stats.saves[0]}</td><td>Saves</td><td>${game.stats.saves[1]}</td></tr><tr><td>${game.stats.hits[0]}</td><td>Hits</td><td>${game.stats.hits[1]}</td></tr></tbody></table>`;}
-function showIntermission(){const overtime=game.period>=3;showModal(`<div class="eyebrow">${overtime?'TIED AT THE HORN':`END OF PERIOD ${game.period}`}</div><h2 id="modal-title">${overtime?'NEXT GOAL WINS.':'BACK IN A MOMENT.'}</h2><div class="final-score">${game.score[0]}–${game.score[1]}</div>${statTable()}<button class="primary" id="next-period">${overtime?'START OVERTIME':`START PERIOD ${game.period+1}`}</button>`);$('next-period').onclick=()=>{hideModal();game.nextPeriod();};}
+function showIntermission(){const overtime=game.period>=3;showModal(`<div class="eyebrow">${overtime?'TIED AT THE HORN':`END OF PERIOD ${game.period}`}</div><h2 id="modal-title">${overtime?'NEXT GOAL WINS.':'BACK IN A MOMENT.'}</h2><div class="final-score">${game.score[0]}–${game.score[1]}</div>${statTable()}<button class="primary" id="next-period">${overtime?'START OVERTIME':`START PERIOD ${game.period+1}`}</button><button id="intermission-ice" class="secondary">DRIVE THE ZAMBONI</button>`);$('intermission-ice').onclick=()=>expansion.zamboni(true);$('next-period').onclick=()=>{hideModal();game.nextPeriod();};}
 function showFinal(){if(expansion.final())return;const win=game.score[0]>game.score[1];showModal(`<div class="eyebrow">FINAL${game.period>3?' / OVERTIME':''}</div><h2 id="modal-title">${win?'THAT’S YOUR ICE.':'RUN IT BACK.'}</h2><p>${TEAMS[win?home:away].city} takes the win.</p><div class="final-score">${game.score[0]}–${game.score[1]}</div>${statTable()}<button class="primary" id="rematch">PLAY AGAIN</button><button class="secondary" id="change-teams">Change teams</button>`);$('rematch').onclick=start;$('change-teams').onclick=returnToMenu;}
 function cameraToggle(){view.cameraMode=view.cameraMode==='broadcast'?'follow':'broadcast';$('camera').querySelector('span').textContent=game.settings.playerMode==='goalie'?(view.cameraMode==='broadcast'?'Goalie':'High goalie'):(view.cameraMode==='broadcast'?'Broadcast':'Follow');}
 $('mode-skater').onclick=()=>setMode('skater');$('mode-goalie').onclick=()=>setMode('goalie');$('home-player').onchange=()=>{(playerMode==='goalie'?chosenGoalies:chosenSkaters)[TEAMS[home].short]=Number($('home-player').value);applyRosterPreview();};$('home-roster').onclick=()=>showRoster(TEAMS[home].short);$('away-roster').onclick=()=>showRoster(TEAMS[away].short);$('all-rosters').onclick=()=>showRoster();$('sync-now').onclick=()=>rosterStore.sync();$('replay-intro').onclick=()=>beginIntro('opening');$('skip-intro').onclick=finishIntro;$('intro-sound').onclick=async()=>{await audio.unlock();if(audio.muted)audio.toggle();audio.cinematic();$('intro-sound').textContent='SOUND ENABLED';};
 $('start').onclick=start;$('pause').onclick=showPause;$('how-to').onclick=showControls;$('help-game').onclick=showControls;$('camera').onclick=cameraToggle;
 $('sound').onclick=()=>{audio.unlock().catch(()=>{});const muted=audio.toggle();$('sound').classList.toggle('muted',muted);$('sound').setAttribute('aria-label',muted?'Unmute audio':'Mute audio');$('sound').title=muted?'Sound off':'Sound on';};
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('Fullscreen is unavailable in this browser');}catch{toast('Fullscreen is unavailable in this browser');}};
-function input(){const mode=game.settings.playerMode;const held=a=>controls.held(mode,a,keys);let x=(held('right')?1:0)-(held('left')?1:0)+touch.x,z=(held('down')?1:0)-(held('up')?1:0)+touch.z;const n=Math.hypot(x,z);if(n>1){x/=n;z/=n;}return{x,z,stop:held('stop')||touch.stop,oneTimer:held('oneTimer')||touch.oneTimer,aimDirection:(held('aimRight')?1:0)-(held('aimLeft')?1:0),aimVertical:(held('aimHigh')?1:0)-(held('aimLow')?1:0),shoot:held('shoot')||touch.shoot,sprint:held('sprint')||touch.sprint,butterfly:held('butterfly')||touch.butterfly,recenter:held('recenter')||touch.recenter};}
+function input(){if(game.zamboni)return{x:(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0),z:(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0),shoot:keys.has('Space')||keys.has('Mouse0'),stop:keys.has('KeyB')};const mode=game.settings.playerMode;const held=a=>controls.held(mode,a,keys);let x=(held('right')?1:0)-(held('left')?1:0)+touch.x,z=(held('down')?1:0)-(held('up')?1:0)+touch.z;const n=Math.hypot(x,z);if(n>1){x/=n;z/=n;}return{x,z,stop:held('stop')||touch.stop,oneTimer:held('oneTimer')||touch.oneTimer,aimDirection:(held('aimRight')?1:0)-(held('aimLeft')?1:0),aimVertical:(held('aimHigh')?1:0)-(held('aimLow')?1:0),shoot:held('shoot')||touch.shoot,sprint:held('sprint')||touch.sprint,butterfly:held('butterfly')||touch.butterfly,recenter:held('recenter')||touch.recenter};}
 function performAction(action){
   if(action==='pause'){if(game.mode==='paused'&&modalClose===resume)resume();else showPause();return;}
-  if(game.mode==='paused')return;if(action==='camera'){cameraToggle();return;}
+  if(game.mode==='paused')return;if(game.settings.pro&&game.benchRemaining>0)return;if(action==='camera'){cameraToggle();return;}
   if(game.settings.playerMode==='goalie'){game.goalieAction(action);return;}
   if(action==='shotType'){game.shotType=['wrist','slap','snap'][(['wrist','slap','snap'].indexOf(game.shotType)+1)%3];toast(game.shotType.toUpperCase()+' SHOT');}
   if(action==='pass')game.pass(undefined,input());if(action==='check')game.check();if(action==='switch')game.switchPlayer();if(action==='line')game.changeLine();
 }
 document.addEventListener('keydown',e=>{
+  if(game.zamboni&&['KeyW','KeyA','KeyS','KeyD','Space','KeyB'].includes(e.code)&&$('modal-layer').classList.contains('hidden')){e.preventDefault();keys.add(e.code);return;}
   if(binding){e.preventDefault();e.stopPropagation();if(e.code==='Escape'){binding=null;drawBindings();$('binding-note').textContent='Binding cancelled.';return;}try{const other=controls.bind(binding.mode,binding.action,e.code);binding=null;drawBindings();refreshHints();$('binding-note').textContent=other?`Saved. Swapped the previous ${LABELS[other].toLowerCase()} key.`:'Saved in this browser.';}catch(error){$('binding-note').textContent=error.message;}return;}
   if(game.mode==='replay'&&['Escape','Space','Enter'].includes(e.code)){e.preventDefault();game.skipReplay();return;}
   if(intro){if(['Escape','Enter','Space'].includes(e.code)){e.preventDefault();finishIntro();}return;}
@@ -147,6 +149,18 @@ document.addEventListener('keydown',e=>{
   const action=controls.action(game.settings.playerMode,e.code);if(!action)return;e.preventDefault();if(e.repeat)return;keys.add(e.code);performAction(action);
 });
 document.addEventListener('keyup',e=>keys.delete(e.code));
+document.addEventListener('mousedown',e=>{
+ const code='Mouse'+e.button;
+ if(binding){e.preventDefault();e.stopPropagation();try{controls.bind(binding.mode,binding.action,code);binding=null;drawBindings();refreshHints();$('binding-note').textContent='Mouse binding saved.';}catch(error){$('binding-note').textContent=error.message;}return;}
+ if(e.target.closest('button,input,select,textarea,a')||!$('modal-layer').classList.contains('hidden')||intro)return;
+ if(game.zamboni){e.preventDefault();keys.add(code);return;}
+ if(!['play','faceoff','goal','frozen'].includes(game.mode))return;
+ e.preventDefault();const mode=game.settings.playerMode,action=controls.action(mode,code);keys.add(code);
+ if(action)performAction(action);else if(e.button===0){if(mode==='goalie')touch.butterfly=true;else touch.shoot=true;}else if(e.button===2)performAction(mode==='goalie'?'glove':'pass');else if(e.button===1)performAction(mode==='goalie'?'poke':'check');
+});
+document.addEventListener('mouseup',e=>{keys.delete('Mouse'+e.button);if(e.button===0){touch.shoot=false;touch.butterfly=false;}});
+document.addEventListener('contextmenu',e=>{if(binding||$('binding-list')||document.body.classList.contains('playing'))e.preventDefault();});
+
 window.addEventListener('blur',()=>{resetInput();if(['play','faceoff','goal','frozen'].includes(game.mode))showPause();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){resetInput();if(['play','faceoff','goal','frozen'].includes(game.mode))showPause();}});
 let joyPointer=null;
@@ -172,6 +186,7 @@ function drawMap(){
   mc.fillStyle='#57d6ff';mc.beginPath();mc.arc(128+game.puck.x*2.05,66+game.puck.z*2.1,3,0,Math.PI*2);mc.fill();
 }
 function syncUI(){
+  if(game.zamboni){$('callout').classList.add('hidden');$('shot-hud').classList.add('hidden');return;}
   $('home-score').textContent=game.score[0];$('away-score').textContent=game.score[1];
   const secs=Math.ceil(game.clock);$('clock').textContent=game.period>3&&secs<=0?'SD':`${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;
   $('period-label').textContent=['','1ST','2ND','3RD'][game.period]||'OT';$('shot-count').textContent=`SHOTS ${game.stats.shots[0]} – ${game.stats.shots[1]}`;
@@ -188,13 +203,14 @@ function syncUI(){
   drawMap();expansion?.tick();
 }
 function frame(t){const dt=Math.min((t-(rafLast||t))/1000,.05);rafLast=t;accumulator+=dt;
-  advanceIntro(dt);while(accumulator>=1/120){game.update(1/120,input());accumulator-=1/120;}
+  advanceIntro(dt);while(accumulator>=1/120){if(!expansion.updateMini(1/120,input()))game.update(1/120,input());accumulator-=1/120;}
   view.render(dt);uiClock+=dt;if(uiClock>.06){syncUI();uiClock=0;}requestAnimationFrame(frame);
 }
-expansion=installExpansion({game,audio,showModal,hideModal,toast,start,setMode,returnToMenu,passKey:()=>keyLabel(controls.maps.skater.pass),setTeams:(h,a)=>{$('home-team').value=h;$('away-team').value=a;updateTeams();}});
+const expansionAPI={game,audio,showModal,hideModal,toast,start,setMode,returnToMenu,showIntermission,has3D:()=>!!view,refreshView:()=>view?.rebuildPlayers(),impact:(x,z)=>view?.decor?.impact(x,z),passKey:()=>keyLabel(controls.maps.skater.pass),setTeams:(h,a)=>{$('home-team').value=h;$('away-team').value=a;updateTeams();}};
+expansion=installElite(expansionAPI,installExpansion(expansionAPI));
 function runGame(){ $('loading').classList.add('hidden');refreshPlayerPicker();refreshHints();beginIntro('opening');void rosterStore.init();requestAnimationFrame(frame);}
 try{view=new RinkRenderer($('rink'),game);runGame();}catch(error){
-  console.error(error);$('loading').innerHTML='<div class="wordmark">RINK<span>26</span></div><span>3D GRAPHICS COULD NOT START</span><p style="max-width:360px;padding:0 25px;text-align:center;color:#a8bacb">Enable hardware acceleration and reload for 3D, or use the playable 2D compatibility view.</p><button class="primary" style="width:200px" id="reload">TRY AGAIN</button><button class="secondary" id="compatibility">PLAY IN 2D</button>';$('reload').onclick=()=>location.reload();$('compatibility').onclick=()=>{view=new CompatibilityRenderer($('rink'),game);runGame();};
+  console.error(error);$('loading').innerHTML='<div class="wordmark">RINK<span>26</span></div><h2>3D GRAPHICS NEED YOUR GPU</h2><p style="max-width:480px;padding:0 25px;text-align:center;color:#a8bacb">The original 3D characters are restored. In Chrome or Edge on Windows, open Settings → System, enable graphics acceleration, restart the browser, then return here.</p><button class="primary" style="width:200px" id="reload">RETRY 3D</button><button class="secondary" id="menus-only">TEAM & CAREER MENUS</button>';$('reload').onclick=()=>location.reload();$('menus-only').onclick=()=>{$('loading').classList.add('hidden');game.mode='menu';rosterStore.init();};
 }
 // WebMCP shares the same state and actions as the visible game controls.
 if(document.modelContext?.registerTool){

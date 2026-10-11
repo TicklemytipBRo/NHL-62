@@ -1,3 +1,5 @@
+import {ArenaDetail} from './arena-detail.mjs';
+import {teamPresentation,teamPack} from './team-builder.mjs';
 import * as THREE from './vendor/three.module.js';
 import { TEAMS, clamp } from './engine.mjs';
 const UP=new THREE.Vector3(0,1,0);
@@ -17,7 +19,7 @@ export class RinkRenderer {
     const fill=new THREE.DirectionalLight(0x85b8ff,1.3);fill.position.set(40,45,-45);this.scene.add(fill);
     this.goalLight=new THREE.PointLight(0xcefa54,0,70,1);this.goalLight.position.set(0,12,0);this.scene.add(this.goalLight);
     this.matCache=new Map();this.boxGeometry=new THREE.BoxGeometry(1,1,1);this.sphereGeometry=new THREE.SphereGeometry(1,14,10);this.cylinderGeometry=new THREE.CylinderGeometry(1,1,1,14);
-    this.buildRink();this.buildStands();this.skaterGroup=new THREE.Group();this.scene.add(this.skaterGroup);this.players=[];this.rebuildPlayers();
+    this.serviceGate=[];this.buildRink();this.buildStands();this.skaterGroup=new THREE.Group();this.scene.add(this.skaterGroup);this.players=[];this.rebuildPlayers();
     this.trainingMarker=new THREE.Mesh(new THREE.RingGeometry(2.8,3.3,40),new THREE.MeshBasicMaterial({color:0xcefa54,side:THREE.DoubleSide,depthTest:false,transparent:true,opacity:.8}));this.trainingMarker.rotation.x=-Math.PI/2;this.scene.add(this.trainingMarker);
     this.puckMesh=this.mesh(this.cylinderGeometry,0x050810,[.48,.25,.48],[0,.25,0]);this.puckMesh.castShadow=true;this.scene.add(this.puckMesh);
     this.puckDot=new THREE.Mesh(new THREE.RingGeometry(.68,.85,24),new THREE.MeshBasicMaterial({color:0x0b233b,transparent:true,opacity:.38,depthWrite:false}));this.puckDot.rotation.x=-Math.PI/2;this.scene.add(this.puckDot);
@@ -28,7 +30,7 @@ export class RinkRenderer {
     this.aim=new THREE.Line(this.aimGeom,new THREE.LineDashedMaterial({color:0x193b4d,dashSize:1.1,gapSize:.65,transparent:true,opacity:.6}));this.scene.add(this.aim);
     this.trailPositions=new Float32Array(24*3);this.trailGeom=new THREE.BufferGeometry();this.trailGeom.setAttribute('position',new THREE.BufferAttribute(this.trailPositions,3));
     this.trail=new THREE.Line(this.trailGeom,new THREE.LineBasicMaterial({color:0x467ba0,transparent:true,opacity:.36}));this.scene.add(this.trail);this.trailHistory=[];
-    this.resize();new ResizeObserver(()=>this.resize()).observe(container);
+    this.decor=new ArenaDetail(this);this.resize();new ResizeObserver(()=>this.resize()).observe(container);
   }
   material(color,extra={}){const key=String(color)+JSON.stringify(extra);if(!this.matCache.has(key))this.matCache.set(key,new THREE.MeshStandardMaterial({color,roughness:.7,...extra}));return this.matCache.get(key);}
   mesh(geometry,color,scale,pos,extra={}){const m=new THREE.Mesh(geometry,this.material(color,extra));if(scale)m.scale.set(...scale);if(pos)m.position.set(...pos);return m;}
@@ -64,15 +66,15 @@ export class RinkRenderer {
     const outline=shape.getPoints(10);const glass=new THREE.MeshPhysicalMaterial({color:0x97d6ed,transparent:true,opacity:.1,roughness:.12,metalness:0,depthWrite:false,side:THREE.DoubleSide});
     for(let i=0;i<outline.length-1;i++){
       const a=outline[i],b=outline[i+1],dx=b.x-a.x,dz=-(b.y-a.y),length=Math.hypot(dx,dz);if(length<.01)continue;
-      const x=(a.x+b.x)/2,z=-(a.y+b.y)/2;const board=this.box(0xe9f3f7,[length+.09,2.1,.5],[x,1.03,z]);board.rotation.y=-Math.atan2(dz,dx);board.castShadow=true;this.scene.add(board);
-      const cap=this.box(0x1c3e62,[length+.1,.19,.7],[x,2.12,z]);cap.rotation.y=board.rotation.y;this.scene.add(cap);
-      const trim=this.box(0xffb326,[length+.09,.3,.52],[x,.22,z]);trim.rotation.y=board.rotation.y;this.scene.add(trim);
-      const panel=new THREE.Mesh(this.boxGeometry,glass);panel.scale.set(length,3,.12);panel.position.set(x,3.7,z);panel.rotation.y=board.rotation.y;this.scene.add(panel);
+      const x=(a.x+b.x)/2,z=-(a.y+b.y)/2;const board=this.box(0xe9f3f7,[length+.09,2.1,.5],[x,1.03,z]);board.rotation.y=-Math.atan2(dz,dx);board.castShadow=true;this.scene.add(board);if(x>58&&length>20)this.serviceGate.push(board);
+      const cap=this.box(0x1c3e62,[length+.1,.19,.7],[x,2.12,z]);cap.rotation.y=board.rotation.y;this.scene.add(cap);if(x>58&&length>20)this.serviceGate.push(cap);
+      const trim=this.box(0xffb326,[length+.09,.3,.52],[x,.22,z]);trim.rotation.y=board.rotation.y;this.scene.add(trim);if(x>58&&length>20)this.serviceGate.push(trim);
+      const panel=new THREE.Mesh(this.boxGeometry,glass);panel.scale.set(length,3,.12);panel.position.set(x,3.7,z);panel.rotation.y=board.rotation.y;this.scene.add(panel);if(x>58&&length>20)this.serviceGate.push(panel);
     }
     for(let x=-48;x<=48;x+=8)for(const z of [-28,28])this.rod([x,2.2,z],[x,5.2,z],.035,0x718ea3);
     this.buildGoal(-1);this.buildGoal(1);
-    this.addBoardText('RINK 26     /     TAKE THE ICE     /     VERY BAD GAMES',-27.65,false);
-    this.addBoardText('PLAY LOUD.     •     HOME ICE     •     RINK 26',27.65,true);
+    
+    
   }
   addBoardText(text,z,flip){
     const c=document.createElement('canvas');c.width=2048;c.height=80;const x=c.getContext('2d');x.fillStyle='#e9f3f7';x.fillRect(0,0,2048,80);x.fillStyle='#214666';x.font='italic 800 46px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(text,1024,43);
@@ -97,10 +99,10 @@ export class RinkRenderer {
     this.scene.add(this.box(0x0c1827,[210,2,155],[0,-4,0]));
     for(let row=0;row<5;row++){
       const h=1+row*2.5,z=33+row*4.8;
-      for(const s of [-1,1]){this.scene.add(this.box(row%2?0x15283c:0x112237,[132+row*7,2.3,5],[0,h,s*z]));this.scene.add(this.box(0x122339,[5,2.3,59+row*10],[s*(64+row*4.8),h,0]));}
+      for(const s of [-1,1]){if(row>0)this.scene.add(this.box(row%2?0x15283c:0x112237,[132+row*7,2.3,5],[0,h,s*z]));this.scene.add(this.box(0x122339,[5,2.3,59+row*10],[s*(64+row*4.8),h,0]));}
     }
     const people=[];for(let row=0;row<5;row++){
-      for(let x=-61-row*3;x<=61+row*3;x+=2.7)for(const s of [-1,1])people.push([x+(row%2)*1.2,3+row*2.5,s*(33+row*4.8)]);
+      for(let x=-61-row*3;x<=61+row*3;x+=2.7)for(const s of [-1,1])if(row>0||Math.abs(x)>52)people.push([x+(row%2)*1.2,3+row*2.5,s*(33+row*4.8)]);
       for(let z=-28-row*4;z<=28+row*4;z+=2.8)for(const s of [-1,1])people.push([s*(64+row*4.8),3+row*2.5,z]);
     }
     const bodies=new THREE.InstancedMesh(this.boxGeometry,this.material(0xffffff),people.length),heads=new THREE.InstancedMesh(this.sphereGeometry,this.material(0xcc9980),people.length);
@@ -116,12 +118,12 @@ export class RinkRenderer {
   rebuildPlayers(){
     for(const p of this.players){this.skaterGroup.remove(p.group);for(const resource of p.disposable??[])resource.dispose();}this.players=[];
     this.rosterVersion=this.game.rosterVersion;
-    for(const p of this.game.players){const team=TEAMS[p.team===0?this.game.settings.home:this.game.settings.away];this.players.push(this.buildSkater(p,team));}
+    for(const p of this.game.players){const team=teamPresentation(this.game.settings,p.team,TEAMS);this.players.push(this.buildSkater(p,team));}
   }
   buildSkater(p,team){
     const group=new THREE.Group(),torso=new THREE.Group();group.add(torso);group.scale.setScalar(clamp((p.height||188)/188,.92,1.08));const jersey=p.team===0?team.color:'#ecf4f9',trim=p.team===0?team.dark:team.color,helmet=p.custom?p.helmet:p.team===0?team.dark:team.color;
     const body=this.box(jersey,[1.65,1.7,1.13],[0,2.35,0]);body.castShadow=true;torso.add(body);
-    torso.add(this.box(trim,[1.69,.27,1.17],[0,1.86,0]));torso.add(this.box(0x16243c,[1.56,.65,.98],[0,1.25,0]));
+    torso.add(this.box(trim,[1.69,.27,1.17],[0,1.86,0]));if(team.jersey==='chevron'){const stripe=this.box(team.accent,[.15,1.5,1.16],[.2,2.35,0]);stripe.rotation.z=.6;torso.add(stripe);}else if(team.jersey==='classic')torso.add(this.box(team.accent,[1.7,.2,1.17],[0,2.25,0]));torso.add(this.box(0x16243c,[1.56,.65,.98],[0,1.25,0]));
     const head=this.mesh(this.sphereGeometry,0xc29172,[.6,.6,.58],[.13,3.65,0]);torso.add(head);
     const hat=this.mesh(this.sphereGeometry,helmet,[.73,.6,.7],[.08,3.9,0]);hat.castShadow=true;torso.add(hat);
     torso.add(this.box(0xa7d4ec,[.13,.37,1.12],[.64,3.57,0],{transparent:true,opacity:.48,roughness:.2}));
@@ -167,7 +169,7 @@ export class RinkRenderer {
     if(this.cinematic){
       const t=this.cinematic.time;const phase=Math.min(3,Math.floor(t/4.5)),u=clamp((t-phase*4.5)/4.5,0,1),e=u*u*(3-2*u);
       const shots=[{a:[-45,5,21],b:[-12,3,13],at:[0,2,0]},{a:[-57,3,12],b:[-44,7,14],at:[-49,2,0]},{a:[30,10,-22],b:[8,5,-12],at:[5,2,0]},{a:[-25,48,64],b:[0,100,105],at:[0,0,0]}];
-      const shot=shots[phase];this.camera.position.fromArray(shot.a).lerp(new THREE.Vector3(...shot.b),e);this.target.set(...shot.at);
+      const pack=teamPack(g.settings.club);const shot=structuredClone(shots[phase]);shot.a[2]+=(pack.seed%4-1.5)*3;shot.b[1]+=Math.floor(pack.seed/4)*2;this.camera.position.fromArray(shot.a).lerp(new THREE.Vector3(...shot.b),e);this.target.set(...shot.at);
     }
     this.camera.lookAt(this.target);
     for(let i=0;i<g.players.length;i++){
@@ -191,6 +193,6 @@ export class RinkRenderer {
     if(drill?.type==='skating'&&g.gates?.[drill.gate]){const [x,z]=g.gates[drill.gate];this.trainingMarker.position.set(x,.08,z);this.trainingMarker.visible=true;}
     else if(drill?.type==='shooting'){this.trainingMarker.position.set(51.5,.08,g.target?.z??0);this.trainingMarker.visible=true;}
     else if(g.settings.playerMode==='goalie'&&g.mode==='play'&&g.puck.owner===null&&g.puck.vx<-.1){const t=(-49-g.puck.x)/g.puck.vx;if(t>0&&t<2){this.trainingMarker.position.set(-49,.08,clamp(g.puck.z+g.puck.vz*t,-12,12));this.trainingMarker.visible=true;}}
-    this.renderer.render(this.scene,this.camera);
+    this.decor.render(dt);this.renderer.render(this.scene,this.camera);
   }
 }

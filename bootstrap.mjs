@@ -1,2 +1,2 @@
-try { await import('./app.mjs?v=expansion-2'); }
+try { await import('./app.mjs?v=arena-3'); }
 catch(error){console.error(error);const box=document.getElementById('loading');box.classList.remove('hidden');box.replaceChildren();const heading=document.createElement('h2');heading.textContent='THE GAME COULD NOT START';const detail=document.createElement('p');detail.textContent='A required game file failed to load. Press Ctrl + F5 to refresh. If it continues, share this error: '+error.message;detail.style.cssText='max-width:520px;padding:20px;text-align:center';const button=document.createElement('button');button.textContent='RELOAD';button.className='primary';button.onclick=()=>location.reload();box.append(heading,detail,button);}

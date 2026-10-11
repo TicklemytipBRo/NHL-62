@@ -1,0 +1,20 @@
+import {HockeyGamePlus} from './upgrade-engine.mjs';
+import {clamp} from './engine.mjs';
+export class EliteGame extends HockeyGamePlus {
+ start(settings={},rosters){this.proStats={goals:0,assists:0,shots:0,saves:0,hits:0,passes:0};this.assistTouch=null;super.start(settings,rosters);this.proId=settings.playerMode==='goalie'?5:0;this.shiftRemaining=25+(settings.pro?.trust??50)*.2;this.benchRemaining=0;this.goalieRecovery=0;}
+ initialSelected(){return this.settings.pro?this.settings.playerMode==='goalie'?5:0:super.initialSelected();}
+ switchPlayer(){if(this.settings.pro){this.selected=this.proId;this.emit('prohint',{message:'Player lock is on. Earn your own shift.'});return;}super.switchPlayer();}
+ changeLine(team=0){if(this.settings.pro&&team===0){if(this.settings.playerMode==='goalie')return false;this.shiftRemaining=25+(this.settings.pro.trust??50)*.2;this.benchRemaining=5;this.emit('probench');return true;}return super.changeLine(team);}
+ gainPuck(p){const pass=this.lastPass;super.gainPuck(p);if(this.settings.pro){if(pass?.from===this.proId&&p.team===0&&p.id!==this.proId){this.proStats.passes++;this.assistTouch={time:this.elapsed};}this.selected=this.proId;}}
+ pass(p=this.players[this.selected],input){const ok=super.pass(p,input);if(this.settings.pro){this.selected=this.proId;if(ok&&p.id===this.proId){const f=1+(this.settings.pro.attributes.passing-65)*.005;this.puck.vx*=f;this.puck.vz*=f;}}return ok;}
+ shoot(power,p=this.players[this.selected],aim){const ok=super.shoot(power,p,aim);if(ok&&this.settings.pro&&p.id===this.proId){this.proStats.shots++;const f=1+(this.settings.pro.attributes.shooting-65)*.006;this.puck.vx*=f;this.puck.vz*=f;}return ok;}
+ check(p=this.players[this.selected]){const ok=super.check(p);if(ok&&this.settings.pro&&p.id===this.proId)this.proStats.hits++;return ok;}
+ goal(team){if(this.settings.pro&&team===0){if(this.puck.lastOwner===this.proId)this.proStats.goals++;else if(this.assistTouch&&this.elapsed-this.assistTouch.time<8)this.proStats.assists++;}this.assistTouch=null;super.goal(team);}
+ move(p,ax,az,dt,speed){const attrs=this.settings.pro?.attributes;super.move(p,ax,az,dt,attrs&&p.id===this.proId?(speed??16)*(1+(attrs.skating-65)*.005):speed);}
+ ai(p,dt){super.ai(p,dt);const form=this.settings.seasonForm?.[p.team];if(form&&!p.goalie){const f=1+((form.form||0)*.005-(form.injury?1:0)*.012);p.vx*=Math.pow(f,dt*10);p.vz*=Math.pow(f,dt*10);}}
+ goalie(p,dt,skill){const dir=p.team===0?1:-1,k=this.puck,arrival=(p.x-k.x)/(k.vx||.001);p.readTimer=(p.readTimer??0)-dt;if(p.readTimer<=0){const screened=this.players.some(q=>!q.goalie&&Math.abs(q.x-p.x)<14&&Math.abs(q.z-p.z)<2);p.readTimer=screened?.22:.09;p.readZ=clamp(k.z+(arrival>0&&arrival<1?k.vz*arrival:k.z*-.35),-4,4);p.readX=-dir*(Math.abs(k.x)<35?48:49.5);p.butterfly=k.owner===null&&arrival>0&&arrival<.3&&k.y<1.4;}
+ const speed=({rookie:7,pro:10,allstar:12}[this.settings.difficulty]||10)*(p.team===0?1:skill);p.vz+=clamp((p.readZ-p.z)*6-p.vz,-speed*5*dt,speed*5*dt);p.vz=clamp(p.vz,-speed,speed);p.z=clamp(p.z+p.vz*dt,-5.5,5.5);p.x+=(p.readX-p.x)*Math.min(1,dt*3);p.fx=dir;p.fz=clamp((k.z-p.z)*.025,-.5,.5);}
+ manualGoalie(p,dt,input){const was=p.butterfly;super.manualGoalie(p,dt,input);if(was&&!p.butterfly)this.goalieRecovery=.18;if(this.goalieRecovery>0){this.goalieRecovery-=dt;p.vx*=Math.exp(-dt*7);p.vz*=Math.exp(-dt*7);}if(p.slide>0){p.vz*=Math.exp(-dt*2.4);}if(p.x<=-51.1&&p.vx<0)p.vx=0;if(Math.abs(p.z)>=12)p.vz=0;}
+ update(dt,input){if(this.settings.pro&&this.mode==='play'){this.selected=this.proId;if(this.benchRemaining>0){this.benchRemaining-=dt;const p=this.players[this.proId];input={...input,x:0,z:0,shoot:false};if(this.settings.playerMode!=='goalie'){const dx=-p.x,dz=-23-p.z,n=Math.hypot(dx,dz);if(n>2)input={x:dx/n,z:dz/n};}this.stamina=Math.min(1,this.stamina+dt*.2);}else if(this.settings.playerMode!=='goalie'){this.shiftRemaining-=dt;if(this.shiftRemaining<=0&&this.puck.owner!==this.proId)this.changeLine();}}
+ super.update(dt,input);if(this.settings.pro){this.selected=this.proId;this.proStats.saves=this.settings.playerMode==='goalie'?this.stats.saves[0]:0;}}
+}

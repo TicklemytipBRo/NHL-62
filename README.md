@@ -49,3 +49,20 @@ No npm install or framework build is required for GitHub Pages. Framework files 
 Covers complete drill lifecycles, shootout rounds, faceoff timing, penalties, offsides/icing, one-timers, replay restoration, player settings, control migration, schedule integrity and complete season/playoff progression.
 
 Team marks and player information belong to their respective owners. This is not an EA or NHL product. Three.js license: `vendor/LICENSE.txt`.
+
+## Update 3 — Full Arena 3D
+
+The game again offers only the original Three.js 3D characters for gameplay. The old 2D compatibility module is unused. Chrome/Edge require graphics acceleration and a working WebGL context; the startup panel explains recovery and allows access to team/career menus without a GPU.
+
+- **Dynamic seasons:** balanced home/away simulation, per-save fictional attack/defense ratings, form, winning/losing streaks, short-term injuries, overtime losses, and form effects in played games. Standings conserve one win and one loss/OT loss per fixture.
+- **Team Builder:** city, team, arena, abbreviation, colors, three jersey patterns, roster-name overrides, fictional sponsor, custom chant, and twelve cinematic packs. Each pack changes camera offsets, light color, water ripples, and introductory copy. Waterglass is a stylized animated ice surface and spring/damping glass response, not a computational fluid simulation.
+- **Be a Pro:** three junior showcases using the available roster opponents, performance-based draft stock, skater or goalie player lock, short shift recovery, personal stats and assists, coach objectives/trust, training, attribute upgrades, XP, levels, media choices, fans, chemistry, salary, contracts, offseason team moves, seasons, playoffs, awards and local saves. This is an original compact browser career—not a full reproduction of EA's game. Training and skill points improve gameplay; trust changes shift length. Team moves are chosen in the offseason, not negotiated with AI general managers.
+- **Arena:** original 3D skaters, fictional board sponsors, penalty-box occupants, player benches and animated coaches, glass flex, intro spotlights and rippling ice. Every match begins with its arena sequence.
+- **Goalies:** acceleration-limited tracking, delayed reads through traffic, butterfly height/reach tradeoffs, lateral slide damping/recovery, swept puck saves, glove catches and shot-energy-based rebounds.
+- **Mouse:** left = shot charge/butterfly, right = pass/glove, middle = check/poke. Any of five mouse buttons can be assigned in each independent layout. Keyboard and touch controls remain supported.
+- **Zamboni:** main-menu or intermission mini-game. W/S throttle/reverse, A/D steering, B brake, hold Space/left mouse to resurface. Clean at least 95%, then stop for one second in the east off-ice service bay at x≈68, z≈16. Exit returns to the menu or intermission without losing the match.
+- **Broadcast:** one serialized speech queue for arena introductions, goals/scores, period announcements, penalties, saves, faceoffs and crowd chants; new lines do not cancel existing narration. Intros wait for their announcement to finish unless explicitly skipped. Browser voice availability and autoplay permissions vary; captions remain visible. Crowd voices are synthesized, not recorded arena crowds.
+
+All progress is browser-local. Current NHL roster snapshots stay separate from custom-team edits. No official sponsor affiliation is implied.
+
+Verification: `node --test tests/*.test.mjs`. Tests cover season accounting, the full pro-career lifecycle, mouse mapping, player lock, goalie collision/catches, mini-game completion gates and existing gameplay modes.
