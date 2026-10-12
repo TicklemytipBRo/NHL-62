@@ -1,3 +1,4 @@
+import {installClubhouse} from './clubhouse-ui.mjs';
 import { TEAMS, clamp } from './engine.mjs';
 import { EliteGame as HockeyGame } from './elite-engine.mjs';
 import {installElite} from './elite-ui.mjs';
@@ -28,9 +29,9 @@ const rosterStore=new RosterStore(onRosterChange);
 for(const t of TEAMS){const i=TEAMS.indexOf(t);for(const id of ['home-team','away-team']){const o=document.createElement('option');o.value=i;o.textContent=t.fullName;$(id).appendChild(o);}}
 $('home-team').value=home;$('away-team').value=away;
 function updateTeams(changed){
-  home=Number($('home-team').value);away=Number($('away-team').value);
-  if(home===away){if(changed==='away'){home=(away+1)%TEAMS.length;$('home-team').value=home;}else{away=(home+1)%TEAMS.length;$('away-team').value=away;}}
-  const h=TEAMS[home],a=TEAMS[away];document.documentElement.style.setProperty('--home',h.color);document.documentElement.style.setProperty('--away',a.color);
+  const isClub=$('home-team').value==='club';home=isClub?(expansion?.club().baseTeam||0):Number($('home-team').value);away=Number($('away-team').value);if(expansion){expansion.setClubEnabled(isClub);game.settings.club={...expansion.club()};}
+  if(home===away){if(changed==='away'){if(isClub){away=(home+1)%TEAMS.length;$('away-team').value=away;}else{home=(away+1)%TEAMS.length;$('home-team').value=home;}}else{away=(home+1)%TEAMS.length;$('away-team').value=away;}}
+  const h=teamPresentation({...game.settings,home,away},0,TEAMS),a=TEAMS[away];document.documentElement.style.setProperty('--home',h.color);document.documentElement.style.setProperty('--away',a.color);
   $('home-badge').firstElementChild.src=h.logo;$('home-badge').firstElementChild.alt=h.fullName;$('away-badge').firstElementChild.src=a.logo;$('away-badge').firstElementChild.alt=a.fullName;$('home-name').textContent=h.name;$('away-name').textContent=a.name;
   $('home-abbr').textContent=h.short;$('away-abbr').textContent=a.short;game.settings.home=home;game.settings.away=away;refreshPlayerPicker();applyRosterPreview();view?.rebuildPlayers();
 }
@@ -40,14 +41,14 @@ if(touchDevice)document.body.classList.add('touch-device');
 function toast(text){$('toast').textContent=text;$('toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),1500);}
 function resetInput(){keys.clear();touch.x=touch.z=0;touch.shoot=touch.sprint=touch.butterfly=touch.recenter=touch.stop=touch.oneTimer=false;game.charge=0;$('joystick-knob').style.transform='';document.querySelectorAll('.touch-buttons button').forEach(b=>b.classList.remove('active'));}
 function start(type="exhibition"){
-  if(typeof type!=="string")type="exhibition";
+  if(typeof type!=="string")type="exhibition";if(type==='club')refreshClub();
   if(!view){toast('Enable graphics acceleration and reload to play in 3D.');return;}const h=rosterStore.get(TEAMS[home].short),a=rosterStore.get(TEAMS[away].short);if(!h||!a){toast('Wait for both team rosters to load');return;}
   audio.unlock().catch(()=>{});resetInput();hideModal();
-  const matchOptions=expansion.options(type);game.start({...matchOptions,home,away,difficulty:$('difficulty').value,periodLength:Number($('period-length').value),playerMode,homeSkater:chosenSkaters[TEAMS[home].short],homeGoalie:chosenGoalies[TEAMS[home].short],awaySkater:chosenSkaters[TEAMS[away].short],awayGoalie:chosenGoalies[TEAMS[away].short]},[customizeRoster(h.players,matchOptions.club),a.players]);
+  const matchOptions=expansion.options(type);if(matchOptions.club.enabled){const roster=expansion.homeRoster(h.players,matchOptions.club);chosenSkaters[TEAMS[home].short]=roster.find(p=>!['D','G'].includes(p.position))?.id;chosenGoalies[TEAMS[home].short]=roster.find(p=>p.position==='G')?.id;}game.start({...matchOptions,home,away,difficulty:$('difficulty').value,periodLength:Number($('period-length').value),playerMode,homeSkater:chosenSkaters[TEAMS[home].short],homeGoalie:chosenGoalies[TEAMS[home].short],awaySkater:chosenSkaters[TEAMS[away].short],awayGoalie:chosenGoalies[TEAMS[away].short]},[customizeRoster(expansion.homeRoster(h.players,matchOptions.club),matchOptions.club),a.players]);
   view.rebuildPlayers();$('home-abbr').textContent=teamPresentation(game.settings,0,TEAMS).short;$('camera').querySelector('span').textContent=playerMode==='goalie'?'Goalie':view.cameraMode==='broadcast'?'Broadcast':'Follow';$('menu').classList.add('hidden');$('hud').classList.add('hidden');$('pause').classList.add('hidden');document.body.classList.add('playing');document.body.classList.toggle('goalie-mode',playerMode==='goalie');$('touch-controls').classList.add('hidden');$('start').blur();previousMode='';refreshHints();beginIntro('match');
 }
 function beginIntro(kind='opening'){
-  if(!view)return;hideModal();resetInput();intro={kind,time:0};introPhase=-1;game.mode='intro';view.cinematic={time:0};$('cinematic').classList.remove('hidden');document.body.classList.add('watching-intro');$('cinema-home').src=TEAMS[home].logo;$('cinema-home').alt=TEAMS[home].fullName;$('cinema-away').src=TEAMS[away].logo;$('cinema-away').alt=TEAMS[away].fullName;
+  if(!view)return;hideModal();resetInput();intro={kind,time:0};introPhase=-1;game.mode='intro';view.cinematic={time:0};$('cinematic').classList.remove('hidden');document.body.classList.add('watching-intro');const homePresentation=teamPresentation(game.settings,0,TEAMS);$('cinema-home').src=homePresentation.logo;$('cinema-home').alt=homePresentation.fullName;$('cinema-away').src=TEAMS[away].logo;$('cinema-away').alt=TEAMS[away].fullName;
   if(kind==='match'){audio.cinematic();expansion.intro();}$('skip-intro').focus();
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)finishIntro();
 }
@@ -91,7 +92,7 @@ function setMode(mode){
 }
 function refreshPlayerPicker(){
   const code=TEAMS[home].short,roster=rosterStore.get(code),keeper=playerMode==='goalie';$('player-select-label').textContent=keeper?'STARTING GOALIE':'STARTING SKATER';
-  const players=(roster?.players??[]).filter(p=>keeper?p.position==='G':p.position!=='G');const choices=keeper?chosenGoalies:chosenSkaters;
+  const activeRoster=expansion?.club().enabled?expansion.homeRoster(roster?.players??[],expansion.club()):roster?.players??[];const players=activeRoster.filter(p=>keeper?p.position==='G':p.position!=='G');const choices=keeper?chosenGoalies:chosenSkaters;if(expansion?.club().enabled)choices[code]=players[0]?.id;$('home-player').disabled=!!expansion?.club().enabled;
   if(!players.some(p=>p.id===choices[code]))choices[code]=(players.find(p=>p.lastName==='McDavid')??players[0])?.id;
   $('home-player').innerHTML=players.length?players.map(p=>`<option value="${p.id}">#${esc(p.number??'–')} ${esc(p.name)} · ${esc(p.position)}</option>`).join(''):'<option>Loading roster…</option>';
   if(choices[code])$('home-player').value=choices[code];$('start').disabled=!view||!roster||!rosterStore.get(TEAMS[away].short);
@@ -99,7 +100,7 @@ function refreshPlayerPicker(){
 }
 function applyRosterPreview(){
   if(!['menu','intro'].includes(game.mode)||(intro&&intro.kind==='match'))return;const h=rosterStore.get(TEAMS[home].short),a=rosterStore.get(TEAMS[away].short);if(!h||!a)return;
-  const signature=[h.team,h.fetchedAt,a.team,a.fetchedAt,chosenSkaters[h.team],chosenGoalies[h.team]].join('|');if(signature===rosterSignature)return;rosterSignature=signature;const mode=game.mode;game.rosters=[h.players,a.players];Object.assign(game.settings,{homeSkater:chosenSkaters[h.team],homeGoalie:chosenGoalies[h.team]});game.setupPlayers();game.faceoff(false);game.mode=mode;
+  const signature=[JSON.stringify(expansion?.club()),h.team,h.fetchedAt,a.team,a.fetchedAt,chosenSkaters[h.team],chosenGoalies[h.team]].join('|');if(signature===rosterSignature)return;rosterSignature=signature;const mode=game.mode;game.rosters=[expansion?.club().enabled?customizeRoster(expansion.homeRoster(h.players,expansion.club()),expansion.club()):h.players,a.players];Object.assign(game.settings,{homeSkater:chosenSkaters[h.team],homeGoalie:chosenGoalies[h.team]});game.setupPlayers();game.faceoff(false);game.mode=mode;
 }
 function onRosterChange(status){
   $('roster-status').textContent=status.syncing?`Syncing ${status.done}/32 · ${status.players} players loaded`:status.failures.length?`${status.teams}/32 teams · ${status.players} players · ${status.failures.length} using saved rosters`:`${status.teams}/32 teams · ${status.players} players · Published roster ${status.oldest?new Date(status.oldest).toLocaleString():''}`;
@@ -119,13 +120,13 @@ function drawRoster(){
   $('roster-summary').textContent=`${count} players shown · ${rosterStore.status().players} unique players across ${rosterStore.status().teams}/32 teams`;$('roster-grid').innerHTML=rows.join('')||'<p>No matching players.</p>';
   $('roster-grid').querySelectorAll('[data-player]').forEach(button=>button.onclick=()=>{const code=button.dataset.team,id=Number(button.dataset.player),p=rosterStore.get(code).players.find(p=>p.id===id);if(p.position==='G')chosenGoalies[code]=id;else chosenSkaters[code]=id;if(game.mode==='menu'){home=TEAMS.findIndex(t=>t.short===code);$('home-team').value=home;setMode(p.position==='G'?'goalie':'skater');updateTeams('home');}refreshPlayerPicker();applyRosterPreview();drawRoster();toast(`${p.name} selected for ${TEAMS.find(t=>t.short===code).city}`);});
 }
-function statTable(){return `<table class="stats"><thead><tr><th>${TEAMS[home].short}</th><th>MATCH STATS</th><th>${TEAMS[away].short}</th></tr></thead><tbody><tr><td>${game.stats.shots[0]}</td><td>Shots</td><td>${game.stats.shots[1]}</td></tr><tr><td>${game.stats.saves[0]}</td><td>Saves</td><td>${game.stats.saves[1]}</td></tr><tr><td>${game.stats.hits[0]}</td><td>Hits</td><td>${game.stats.hits[1]}</td></tr></tbody></table>`;}
+function statTable(){return `<table class="stats"><thead><tr><th>${teamPresentation(game.settings,0,TEAMS).short}</th><th>MATCH STATS</th><th>${TEAMS[away].short}</th></tr></thead><tbody><tr><td>${game.stats.shots[0]}</td><td>Shots</td><td>${game.stats.shots[1]}</td></tr><tr><td>${game.stats.saves[0]}</td><td>Saves</td><td>${game.stats.saves[1]}</td></tr><tr><td>${game.stats.hits[0]}</td><td>Hits</td><td>${game.stats.hits[1]}</td></tr></tbody></table>`;}
 function showIntermission(){const overtime=game.period>=3;showModal(`<div class="eyebrow">${overtime?'TIED AT THE HORN':`END OF PERIOD ${game.period}`}</div><h2 id="modal-title">${overtime?'NEXT GOAL WINS.':'BACK IN A MOMENT.'}</h2><div class="final-score">${game.score[0]}–${game.score[1]}</div>${statTable()}<button class="primary" id="next-period">${overtime?'START OVERTIME':`START PERIOD ${game.period+1}`}</button><button id="intermission-ice" class="secondary">DRIVE THE ZAMBONI</button>`);$('intermission-ice').onclick=()=>expansion.zamboni(true);$('next-period').onclick=()=>{hideModal();game.nextPeriod();};}
 function showFinal(){if(expansion.final())return;const win=game.score[0]>game.score[1];showModal(`<div class="eyebrow">FINAL${game.period>3?' / OVERTIME':''}</div><h2 id="modal-title">${win?'THAT’S YOUR ICE.':'RUN IT BACK.'}</h2><p>${TEAMS[win?home:away].city} takes the win.</p><div class="final-score">${game.score[0]}–${game.score[1]}</div>${statTable()}<button class="primary" id="rematch">PLAY AGAIN</button><button class="secondary" id="change-teams">Change teams</button>`);$('rematch').onclick=start;$('change-teams').onclick=returnToMenu;}
 function cameraToggle(){view.cameraMode=view.cameraMode==='broadcast'?'follow':'broadcast';$('camera').querySelector('span').textContent=game.settings.playerMode==='goalie'?(view.cameraMode==='broadcast'?'Goalie':'High goalie'):(view.cameraMode==='broadcast'?'Broadcast':'Follow');}
 $('mode-skater').onclick=()=>setMode('skater');$('mode-goalie').onclick=()=>setMode('goalie');$('home-player').onchange=()=>{(playerMode==='goalie'?chosenGoalies:chosenSkaters)[TEAMS[home].short]=Number($('home-player').value);applyRosterPreview();};$('home-roster').onclick=()=>showRoster(TEAMS[home].short);$('away-roster').onclick=()=>showRoster(TEAMS[away].short);$('all-rosters').onclick=()=>showRoster();$('sync-now').onclick=()=>rosterStore.sync();$('replay-intro').onclick=()=>beginIntro('opening');$('skip-intro').onclick=finishIntro;$('intro-sound').onclick=async()=>{await audio.unlock();if(audio.muted)audio.toggle();audio.cinematic();$('intro-sound').textContent='SOUND ENABLED';};
 $('start').onclick=start;$('pause').onclick=showPause;$('how-to').onclick=showControls;$('help-game').onclick=showControls;$('camera').onclick=cameraToggle;
-$('sound').onclick=()=>{audio.unlock().catch(()=>{});const muted=audio.toggle();$('sound').classList.toggle('muted',muted);$('sound').setAttribute('aria-label',muted?'Unmute audio':'Mute audio');$('sound').title=muted?'Sound off':'Sound on';};
+$('sound').onclick=()=>{const first=!audio.ctx;audio.unlock().catch(()=>{});const muted=first?audio.muted:audio.toggle();$('sound').classList.toggle('muted',muted);$('sound').setAttribute('aria-label',muted?'Unmute audio':'Mute audio');$('sound').title=muted?'Sound off':'Sound on';};
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('Fullscreen is unavailable in this browser');}catch{toast('Fullscreen is unavailable in this browser');}};
 function input(){if(game.zamboni)return{x:(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0),z:(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0),shoot:keys.has('Space')||keys.has('Mouse0'),stop:keys.has('KeyB')};const mode=game.settings.playerMode;const held=a=>controls.held(mode,a,keys);let x=(held('right')?1:0)-(held('left')?1:0)+touch.x,z=(held('down')?1:0)-(held('up')?1:0)+touch.z;const n=Math.hypot(x,z);if(n>1){x/=n;z/=n;}return{x,z,stop:held('stop')||touch.stop,oneTimer:held('oneTimer')||touch.oneTimer,aimDirection:(held('aimRight')?1:0)-(held('aimLeft')?1:0),aimVertical:(held('aimHigh')?1:0)-(held('aimLow')?1:0),shoot:held('shoot')||touch.shoot,sprint:held('sprint')||touch.sprint,butterfly:held('butterfly')||touch.butterfly,recenter:held('recenter')||touch.recenter};}
 function performAction(action){
@@ -198,7 +199,7 @@ function syncUI(){
     const n=Math.max(1,Math.ceil(game.phaseTimer));$('callout').classList.remove('hidden');$('callout-kicker').textContent=game.period>3?'SUDDEN DEATH':`PERIOD ${game.period}`;$('callout-title').textContent=n===3?'FACE OFF':String(n);$('callout-detail').textContent=game.settings.playerMode==='goalie'?'Get set. Protect your net.':'Get ready. You attack right.';
     if(n!==lastCountdown){audio.tone(n===1?740:520,.11,'sine',.08);lastCountdown=n;}
   }else if(game.mode==='goal'){
-    const team=TEAMS[game.lastGoal.team===0?home:away];$('callout').classList.remove('hidden');$('callout-kicker').textContent=`${team.city.toUpperCase()} SCORES`;$('callout-title').textContent='GOOOAL!';$('callout-detail').textContent=`${game.lastGoal.scorerName} · ${TEAMS[home].short} ${game.score[0]}  –  ${game.score[1]} ${TEAMS[away].short}`;
+    const team=teamPresentation(game.settings,game.lastGoal.team,TEAMS);$('callout').classList.remove('hidden');$('callout-kicker').textContent=`${team.city.toUpperCase()} SCORES`;$('callout-title').textContent='GOOOAL!';$('callout-detail').textContent=`${game.lastGoal.scorerName} · ${teamPresentation(game.settings,0,TEAMS).short} ${game.score[0]}  –  ${game.score[1]} ${TEAMS[away].short}`;
   }else if(game.mode==='frozen'){$('callout').classList.remove('hidden');$('callout-kicker').textContent='PLAY STOPPED';$('callout-title').textContent='PUCK FROZEN';$('callout-detail').textContent='Faceoff in the defensive zone.';}else{$('callout').classList.add('hidden');lastCountdown=0;}
   if(game.mode!==previousMode){const mode=game.mode;previousMode=mode;if(mode==='intermission')showIntermission();if(mode==='final')showFinal();}
   drawMap();expansion?.tick();
@@ -207,8 +208,12 @@ function frame(t){const dt=Math.min((t-(rafLast||t))/1000,.05);rafLast=t;accumul
   advanceIntro(dt);while(accumulator>=1/120){if(!expansion.updateMini(1/120,input()))game.update(1/120,input());accumulator-=1/120;}
   view.render(dt);uiClock+=dt;if(uiClock>.06){syncUI();uiClock=0;}requestAnimationFrame(frame);
 }
-const expansionAPI={game,audio,showModal,hideModal,toast,start,setMode,returnToMenu,showIntermission,has3D:()=>!!view,refreshView:()=>view?.rebuildPlayers(),impact:(x,z)=>view?.decor?.impact(x,z),passKey:()=>keyLabel(controls.maps.skater.pass),setTeams:(h,a)=>{$('home-team').value=h;$('away-team').value=a;updateTeams();}};
-expansion=installElite(expansionAPI,installExpansion(expansionAPI));
+const expansionAPI={game,audio,rosterStore,refreshClub,controlLabel:(mode,action)=>keyLabel(controls.maps[mode][action]||action),showModal,hideModal,toast,start,setMode,returnToMenu,showIntermission,has3D:()=>!!view,refreshView:()=>view?.rebuildPlayers(),impact:(x,z)=>view?.decor?.impact(x,z),passKey:()=>keyLabel(controls.maps.skater.pass),setTeams:(h,a)=>{$('home-team').value=h;$('away-team').value=a;updateTeams();}};
+expansion=installClubhouse(expansionAPI,installElite(expansionAPI,installExpansion(expansionAPI)));refreshClub();
+function refreshClub(){
+ if(!expansion)return;const club=expansion.club();let option=$('home-team').querySelector('option[value="club"]');if(!option){option=document.createElement('option');option.value='club';$('home-team').appendChild(option);}option.textContent='★ '+club.city+' '+club.name+' (Custom)';
+ $('home-team').value=club.enabled?'club':String(home);game.settings.club={...club};rosterSignature='';updateTeams('home');
+}
 function runGame(){ $('loading').classList.add('hidden');refreshPlayerPicker();refreshHints();beginIntro('opening');void rosterStore.init();requestAnimationFrame(frame);}
 try{view=new RinkRenderer($('rink'),game);runGame();}catch(error){
   console.error(error);$('loading').innerHTML='<div class="wordmark">RINK<span>26</span></div><h2>3D GRAPHICS NEED YOUR GPU</h2><p style="max-width:480px;padding:0 25px;text-align:center;color:#a8bacb">The original 3D characters are restored. In Chrome or Edge on Windows, open Settings → System, enable graphics acceleration, restart the browser, then return here.</p><button class="primary" style="width:200px" id="reload">RETRY 3D</button><button class="secondary" id="menus-only">TEAM & CAREER MENUS</button>';$('reload').onclick=()=>location.reload();$('menus-only').onclick=()=>{$('loading').classList.add('hidden');game.mode='menu';rosterStore.init();};

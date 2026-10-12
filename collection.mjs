@@ -1,0 +1,8 @@
+export const COLLECTION_KEY='rink26.collection.v1';
+export function playerPool(rosters){const map=new Map();for(const [team,r] of Object.entries(rosters||{}))for(const p of r.players||[])if(Number.isFinite(p.id)&&!map.has(p.id))map.set(p.id,{...p,team});return[...map.values()];}
+export function drawPack(pool,random=Math.random,count=5){if(!pool.length)throw new Error('Load the NHL roster before opening a pack.');return Array.from({length:count},()=>({...pool[Math.min(pool.length-1,Math.floor(Math.max(0,random())*pool.length))]}));}
+export function collect(collection,cards){for(const p of cards)collection[p.id]={player:{...p},count:(collection[p.id]?.count||0)+1};return collection;}
+export const SLOTS=['C','LW','RW','LD','RD','G'];
+export function fitsSlot(p,slot){return slot==='G'?p.position==='G':['LD','RD'].includes(slot)?p.position==='D':!['D','G'].includes(p.position);}
+export function assignCard(club,slot,p){if(!SLOTS.includes(slot)||!fitsSlot(p,slot))return false;club.lineup??={};for(const s of SLOTS)if(club.lineup[s]===p.id)delete club.lineup[s];club.lineup[slot]=p.id;return true;}
+export function buildClubRoster(base,club,pool){if(!club?.enabled)return base;const all=new Map([...base,...pool].map(p=>[p.id,p])),chosen=[],used=new Set();for(const slot of SLOTS){const wanted=all.get(club.lineup?.[slot]);const p=wanted&&fitsSlot(wanted,slot)&&!used.has(wanted.id)?wanted:base.find(p=>fitsSlot(p,slot)&&!used.has(p.id));if(p){chosen.push({...p});used.add(p.id);}}return[...chosen,...base.filter(p=>!used.has(p.id))];}

@@ -66,3 +66,13 @@ The game again offers only the original Three.js 3D characters for gameplay. The
 All progress is browser-local. Current NHL roster snapshots stay separate from custom-team edits. No official sponsor affiliation is implied.
 
 Verification: `node --test tests/*.test.mjs`. Tests cover season accounting, the full pro-career lifecycle, mouse mapping, player lock, goalie collision/catches, mini-game completion gates and existing gameplay modes.
+
+## Update 4 — Collect, Create, Learn
+
+- Announcer defaults to locally bundled, generic synthesized MP3 voice clips played through the game's unlocked Web Audio context. **Announcer Audio → Enable & Test Announcer** exposes playback status, volume, and optional browser voices for full player/team names. Browser speech that never starts falls back to a bundled clip. The speaker button's first click now enables audio rather than muting an uninitialized sound system. Music/effects duck during narration.
+- **Player Packs** are unlimited and free: five independent uniform draws from every unique player in the current published 32-team roster snapshot. Duplicates accumulate. The exact eligible count and per-card odds are visible. No paid currency, purchases, rarity weighting, or gambling rewards exist.
+- **My Teams & Lineup** saves multiple custom clubs. Collected players can be assigned to three forward, two defense and one goalie starting slot. Empty positions use the chosen base team's roster. A player cannot fill two slots. Starting lineup IDs reach the match engine; collection data never edits official rosters.
+- Custom teams have their own home-selector entry and **Save & Play This Team** action. Crests, six jersey patterns, helmet/pants/socks/pads/number colors, roster selection, arena branding, sponsors, chants and cinematic packs are configurable. Custom identity also carries into a newly created season.
+- **Gretzky Hockey School** has six fictional fan-tutorial lessons, a CC0 photograph of Wayne Gretzky above the lesson text, generic computer narration, current key bindings, and buttons to launch matching practice drills. Neither the script nor the voice is an authentic statement by Gretzky. Photo and voice credits are in `assets/CREDITS.md`.
+
+Player availability follows the NHL feeds: retired players and prospects absent from those feeds are not part of the current-player pack pool. Saves and card collections stay in this browser.

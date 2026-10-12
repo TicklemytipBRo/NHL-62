@@ -1,11 +1,17 @@
+const clipFor=item=>item.clip||(item.key==='test'?'test':/welcome to/i.test(item.text)?'intro':/^goal!/i.test(item.text)?'goal':/final score/i.test(item.text)?'final':/end of period/i.test(item.text)?'period':/minor|interference/i.test(item.text)?'penalty':/offside|icing/i.test(item.text)?'whistle':/one.timer/i.test(item.text)?'onetimer':/shot on goal/i.test(item.text)?'shot':/save|shuts the door/i.test(item.text)?'save':/puck is down/i.test(item.text)?'drop':/win the draw/i.test(item.text)?'draw':/covered/i.test(item.text)?'freeze':/off the post/i.test(item.text)?'post':/ice crew/i.test(item.text)?'crew':item.chant?'chant':'line');
 export class BroadcastQueue {
- constructor(audio,caption=()=>{}){this.audio=audio;this.caption=caption;this.queue=[];this.current=null;this.enabled=true;this.last=new Map();}
- say(text,{key=text,important=false,chant=false,intro=false}={}){if(!this.enabled)return;const now=Date.now();if(!important&&now-(this.last.get(key)||0)<12000)return;this.last.set(key,now);this.queue.push({text,important,chant,intro});this.pump();}
+ constructor(audio,caption=()=>{}){this.audio=audio;this.caption=caption;this.queue=[];this.current=null;this.enabled=true;this.last=new Map();this.mode='recorded';this.volume=1;this.voiceURI='';this.status='Click ENABLE & TEST ANNOUNCER to hear a voice check.';}
+ say(text,{key=text,important=false,chant=false,intro=false,clip=null}={}){if(!this.enabled)return;const now=Date.now();if(!important&&now-(this.last.get(key)||0)<12000)return;this.last.set(key,now);this.queue.push({text,important,chant,intro,clip});this.pump();}
  get introBusy(){return this.current?.intro||this.queue.some(q=>q.intro);}
- pump(){if(this.current||!this.queue.length)return;const item=this.queue.shift();this.current=item;this.caption(item.text);let finished=false;const done=()=>{if(finished)return;finished=true;clearTimeout(this.timer);this.current=null;if(this.audio.crowd)this.audio.crowd.gain.setTargetAtTime(.085,this.audio.ctx.currentTime,.2);this.pump();};
- if(this.audio.crowd)this.audio.crowd.gain.setTargetAtTime(.025,this.audio.ctx.currentTime,.15);
- if(!this.audio.muted&&globalThis.speechSynthesis&&globalThis.SpeechSynthesisUtterance){const u=new SpeechSynthesisUtterance(item.text);u.rate=item.chant?.8:1.06;u.pitch=item.chant?.72:1;u.volume=.9;u.onend=done;u.onerror=done;this.utterance=u;speechSynthesis.speak(u);this.timer=setTimeout(()=>{if(!speechSynthesis.speaking)done();else this.timer=setTimeout(done,30000);},Math.max(15000,item.text.length*110));}
- else this.timer=setTimeout(done,Math.max(1600,item.text.length*35));
+ pump(){if(this.current||!this.queue.length)return;const item=this.queue.shift();this.current=item;this.caption(item.text);let finished=false,started=false;
+ const done=()=>{if(finished)return;finished=true;clearTimeout(this.timer);this.current=null;this.status='Ready';if(this.audio.effects&&this.audio.ctx)this.audio.effects.gain.setTargetAtTime(1,this.audio.ctx.currentTime,.2);this.pump();};
+ const fallback=()=>{if(finished)return;clearTimeout(this.timer);if(this.audio.muted){this.status='Audio muted';done();return;}if(this.audio.playVoice){this.status='Loading arena voice…';this.audio.playVoice(clipFor(item),this.volume,()=>{started=true;this.status='Speaking · arena voice';}).then(done).catch(()=>{this.status='Audio blocked. Click ENABLE & TEST ANNOUNCER again.';finished=true;this.current=null;this.queue=[];});}else{this.status='No voice available';this.timer=setTimeout(done,Math.max(1600,item.text.length*35));}};
+ if(this.audio.effects&&this.audio.ctx)this.audio.effects.gain.setTargetAtTime(.2,this.audio.ctx.currentTime,.1);
+ const synth=globalThis.speechSynthesis;
+ if(!this.audio.muted&&globalThis.SpeechSynthesisUtterance&&synth&&(this.mode==='browser'||!this.audio.playVoice)){
+  synth.resume?.();const voices=synth.getVoices?.()||[];const voice=voices.find(v=>v.voiceURI===this.voiceURI)||voices.find(v=>/^en/i.test(v.lang));const u=new SpeechSynthesisUtterance(item.text);if(voice)u.voice=voice;u.lang=voice?.lang||'en-US';u.rate=item.chant?.8:1.03;u.pitch=item.chant?.8:1;u.volume=this.volume;u.onstart=()=>{started=true;clearTimeout(this.timer);this.status='Speaking · browser voice';};u.onend=done;u.onerror=fallback;this.utterance=u;
+  try{synth.speak(u);this.timer=setTimeout(()=>{if(!started&&!finished){u.onend=null;u.onerror=null;synth.cancel();fallback();}},2500);}catch{fallback();}
+ }else fallback();
  }
  setEnabled(value){this.enabled=value;if(!value)this.queue=[];}
 }

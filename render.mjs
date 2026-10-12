@@ -121,9 +121,9 @@ export class RinkRenderer {
     for(const p of this.game.players){const team=teamPresentation(this.game.settings,p.team,TEAMS);this.players.push(this.buildSkater(p,team));}
   }
   buildSkater(p,team){
-    const group=new THREE.Group(),torso=new THREE.Group();group.add(torso);group.scale.setScalar(clamp((p.height||188)/188,.92,1.08));const jersey=p.team===0?team.color:'#ecf4f9',trim=p.team===0?team.dark:team.color,helmet=p.custom?p.helmet:p.team===0?team.dark:team.color;
+    const group=new THREE.Group(),torso=new THREE.Group();group.add(torso);group.scale.setScalar(clamp((p.height||188)/188,.92,1.08));const jersey=p.team===0?team.color:'#ecf4f9',trim=p.team===0?team.dark:team.color,helmet=p.custom?p.helmet:p.team===0?(team.helmet||team.dark):team.color;
     const body=this.box(jersey,[1.65,1.7,1.13],[0,2.35,0]);body.castShadow=true;torso.add(body);
-    torso.add(this.box(trim,[1.69,.27,1.17],[0,1.86,0]));if(team.jersey==='chevron'){const stripe=this.box(team.accent,[.15,1.5,1.16],[.2,2.35,0]);stripe.rotation.z=.6;torso.add(stripe);}else if(team.jersey==='classic')torso.add(this.box(team.accent,[1.7,.2,1.17],[0,2.25,0]));torso.add(this.box(0x16243c,[1.56,.65,.98],[0,1.25,0]));
+    torso.add(this.box(trim,[1.69,.27,1.17],[0,1.86,0]));if(team.jersey==='chevron'){const stripe=this.box(team.accent,[.15,1.5,1.16],[.2,2.35,0]);stripe.rotation.z=.6;torso.add(stripe);}else if(team.jersey==='hoops'){for(const y of [1.85,2.35,2.85])torso.add(this.box(team.accent,[1.7,.18,1.17],[0,y,0]));}else if(team.jersey==='pinstripe'){for(const z of [-.42,0,.42])torso.add(this.box(team.accent,[1.7,1.45,.065],[0,2.35,z]));}else if(team.jersey==='shoulder')torso.add(this.box(team.accent,[1.72,.48,1.18],[0,2.96,0]));else if(team.jersey==='classic')torso.add(this.box(team.accent,[1.7,.2,1.17],[0,2.25,0]));torso.add(this.box(p.team===0?(team.pants||0x16243c):0x16243c,[1.56,.65,.98],[0,1.25,0]));
     const head=this.mesh(this.sphereGeometry,0xc29172,[.6,.6,.58],[.13,3.65,0]);torso.add(head);
     const hat=this.mesh(this.sphereGeometry,helmet,[.73,.6,.7],[.08,3.9,0]);hat.castShadow=true;torso.add(hat);
     torso.add(this.box(0xa7d4ec,[.13,.37,1.12],[.64,3.57,0],{transparent:true,opacity:.48,roughness:.2}));
@@ -131,7 +131,7 @@ export class RinkRenderer {
     const legs=[];
     for(const sign of [-1,1]){
       const leg=new THREE.Group();leg.position.set(0,1.1,sign*.5);torso.add(leg);legs.push(leg);
-      leg.add(this.box(jersey,[.65,.88,.59],[0,-.28,0]));leg.add(this.box(trim,[.68,.22,.62],[0,-.45,0]));
+      leg.add(this.box(p.team===0?(team.socks||jersey):jersey,[.65,.88,.59],[0,-.28,0]));leg.add(this.box(trim,[.68,.22,.62],[0,-.45,0]));
       leg.add(this.box(0x18222d,[1,.35,.56],[.1,-.8,0]));leg.add(this.box(0xa5bac2,[1.17,.1,.16],[.1,-1.02,0]));
       const arm=new THREE.Group();arm.position.set(.13,2.8,sign*.83);arm.rotation.z=.15;torso.add(arm);
       arm.add(this.box(jersey,[.61,1.15,.62],[.1,-.38,0]));arm.add(this.box(trim,[.64,.22,.65],[.1,-.65,0]));arm.add(this.box(helmet,[.62,.45,.65],[.42,-.96,0]));
@@ -139,10 +139,10 @@ export class RinkRenderer {
     const stick=new THREE.Group();torso.add(stick);this.rod([.7,1.95,.8],[2.25,.18,1.3],.08,p.custom?p.stick:0x363529,stick);stick.add(this.box(p.custom?p.stick:0x303333,[1.2,.24,.21],[2.68,.17,1.3]));
     if(p.hand==='R')stick.scale.z=-1;
     if(p.goalie){
-      for(const s of [-1,1])torso.add(this.box(p.custom?p.pads:0xe6edf0,[.65,1.48,.93],[.43,.9,s*.58]));
+      for(const s of [-1,1])torso.add(this.box(p.custom?p.pads:p.team===0?(team.pads||0xe6edf0):0xe6edf0,[.65,1.48,.93],[.43,.9,s*.58]));
       torso.add(this.box(team.color,[.18,1.28,1.5],[.79,.9,0]));torso.add(this.box(0xe7f0f7,[.45,.75,.7],[1,1.8,-1.05]));
     }
-    const numberCanvas=document.createElement('canvas');numberCanvas.width=64;numberCanvas.height=64;const c=numberCanvas.getContext('2d');c.fillStyle=p.team===0?'white':team.dark;c.font='900 49px Arial';c.textAlign='center';c.fillText(String(p.number),32,50);const numberTex=new THREE.CanvasTexture(numberCanvas);numberTex.colorSpace=THREE.SRGBColorSpace;
+    const numberCanvas=document.createElement('canvas');numberCanvas.width=64;numberCanvas.height=64;const c=numberCanvas.getContext('2d');c.fillStyle=p.team===0?(team.numberColor||'white'):team.dark;c.font='900 49px Arial';c.textAlign='center';c.fillText(String(p.number),32,50);const numberTex=new THREE.CanvasTexture(numberCanvas);numberTex.colorSpace=THREE.SRGBColorSpace;
     const numberMat=new THREE.MeshBasicMaterial({map:numberTex,transparent:true,side:THREE.DoubleSide,depthWrite:false});const number=new THREE.Mesh(new THREE.PlaneGeometry(1,1),numberMat);number.position.set(-.84,2.46,0);number.rotation.y=-Math.PI/2;torso.add(number);
     const shadow=new THREE.Mesh(new THREE.CircleGeometry(1.8,24),new THREE.MeshBasicMaterial({color:0x183147,transparent:true,opacity:.1,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.05;group.add(shadow);
     this.skaterGroup.add(group);return{group,torso,legs,stick,shadow,disposable:[numberTex,numberMat,number.geometry,shadow.material,shadow.geometry]};
