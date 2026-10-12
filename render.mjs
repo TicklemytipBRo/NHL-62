@@ -99,11 +99,11 @@ export class RinkRenderer {
     this.scene.add(this.box(0x0c1827,[210,2,155],[0,-4,0]));
     for(let row=0;row<5;row++){
       const h=1+row*2.5,z=33+row*4.8;
-      for(const s of [-1,1]){if(row>0)this.scene.add(this.box(row%2?0x15283c:0x112237,[132+row*7,2.3,5],[0,h,s*z]));this.scene.add(this.box(0x122339,[5,2.3,59+row*10],[s*(64+row*4.8),h,0]));}
+      for(const s of [-1,1]){if(row>0)this.scene.add(this.box(row%2?0x15283c:0x112237,[132+row*7,2.3,5],[0,h,s*z]));if(s===1&&row<3){const extent=(59+row*10)/2;this.scene.add(this.box(0x122339,[5,2.3,extent+9],[s*(64+row*4.8),h,(9-extent)/2]));this.scene.add(this.box(0x122339,[5,2.3,extent-24],[s*(64+row*4.8),h,(24+extent)/2]));}else this.scene.add(this.box(0x122339,[5,2.3,59+row*10],[s*(64+row*4.8),h,0]));}
     }
     const people=[];for(let row=0;row<5;row++){
       for(let x=-61-row*3;x<=61+row*3;x+=2.7)for(const s of [-1,1])if(row>0||Math.abs(x)>52)people.push([x+(row%2)*1.2,3+row*2.5,s*(33+row*4.8)]);
-      for(let z=-28-row*4;z<=28+row*4;z+=2.8)for(const s of [-1,1])people.push([s*(64+row*4.8),3+row*2.5,z]);
+      for(let z=-28-row*4;z<=28+row*4;z+=2.8)for(const s of [-1,1])if(!(s===1&&row<3&&z>8&&z<25))people.push([s*(64+row*4.8),3+row*2.5,z]);
     }
     const bodies=new THREE.InstancedMesh(this.boxGeometry,this.material(0xffffff),people.length),heads=new THREE.InstancedMesh(this.sphereGeometry,this.material(0xcc9980),people.length);
     const dummy=new THREE.Object3D(),colors=[0x344b67,0x365f88,0xc07e36,0x27485c,0x774747,0x3d5265,0x9aabb4,0x283849];

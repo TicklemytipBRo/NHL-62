@@ -158,7 +158,8 @@ document.addEventListener('mousedown',e=>{
  e.preventDefault();const mode=game.settings.playerMode,action=controls.action(mode,code);keys.add(code);
  if(action)performAction(action);else if(e.button===0){if(mode==='goalie')touch.butterfly=true;else touch.shoot=true;}else if(e.button===2)performAction(mode==='goalie'?'glove':'pass');else if(e.button===1)performAction(mode==='goalie'?'poke':'check');
 });
-document.addEventListener('mouseup',e=>{keys.delete('Mouse'+e.button);if(e.button===0){touch.shoot=false;touch.butterfly=false;}});
+document.addEventListener('auxclick',e=>{if(binding||document.body.classList.contains('playing'))e.preventDefault();});
+document.addEventListener('mouseup',e=>{if(e.button>0&&document.body.classList.contains('playing'))e.preventDefault();keys.delete('Mouse'+e.button);if(e.button===0){touch.shoot=false;touch.butterfly=false;}});
 document.addEventListener('contextmenu',e=>{if(binding||$('binding-list')||document.body.classList.contains('playing'))e.preventDefault();});
 
 window.addEventListener('blur',()=>{resetInput();if(['play','faceoff','goal','frozen'].includes(game.mode))showPause();});

@@ -5,7 +5,7 @@ export class EliteGame extends HockeyGamePlus {
  initialSelected(){return this.settings.pro?this.settings.playerMode==='goalie'?5:0:super.initialSelected();}
  switchPlayer(){if(this.settings.pro){this.selected=this.proId;this.emit('prohint',{message:'Player lock is on. Earn your own shift.'});return;}super.switchPlayer();}
  changeLine(team=0){if(this.settings.pro&&team===0){if(this.settings.playerMode==='goalie')return false;this.shiftRemaining=25+(this.settings.pro.trust??50)*.2;this.benchRemaining=5;this.emit('probench');return true;}return super.changeLine(team);}
- gainPuck(p){const pass=this.lastPass;super.gainPuck(p);if(this.settings.pro){if(pass?.from===this.proId&&p.team===0&&p.id!==this.proId){this.proStats.passes++;this.assistTouch={time:this.elapsed};}this.selected=this.proId;}}
+ gainPuck(p){const pass=this.lastPass;super.gainPuck(p);if(this.settings.pro){if(p.team===1)this.assistTouch=null;if(pass?.from===this.proId&&p.team===0&&p.id!==this.proId){this.proStats.passes++;this.assistTouch={time:this.elapsed};}this.selected=this.proId;}}
  pass(p=this.players[this.selected],input){const ok=super.pass(p,input);if(this.settings.pro){this.selected=this.proId;if(ok&&p.id===this.proId){const f=1+(this.settings.pro.attributes.passing-65)*.005;this.puck.vx*=f;this.puck.vz*=f;}}return ok;}
  shoot(power,p=this.players[this.selected],aim){const ok=super.shoot(power,p,aim);if(ok&&this.settings.pro&&p.id===this.proId){this.proStats.shots++;const f=1+(this.settings.pro.attributes.shooting-65)*.006;this.puck.vx*=f;this.puck.vz*=f;}return ok;}
  check(p=this.players[this.selected]){const ok=super.check(p);if(ok&&this.settings.pro&&p.id===this.proId)this.proStats.hits++;return ok;}
