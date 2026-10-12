@@ -1,15 +1,15 @@
-import {installRinkUpdate} from './rink-update.mjs?v=ice-5';
-import {installClubhouse} from './clubhouse-ui.mjs?v=ice-5';
-import { TEAMS, clamp } from './engine.mjs?v=ice-5';
-import { EliteGame as HockeyGame } from './elite-engine.mjs?v=ice-5';
-import {installElite} from './elite-ui.mjs?v=ice-5';
-import {customizeRoster,teamPresentation,teamPack} from './team-builder.mjs?v=ice-5';
-import { installExpansion } from './expansion-ui.mjs?v=ice-5';
+import {installRinkUpdate} from './rink-update.mjs?v=ice-5.1';
+import {installClubhouse} from './clubhouse-ui.mjs?v=ice-5.1';
+import { TEAMS, clamp } from './engine.mjs?v=ice-5.1';
+import { EliteGame as HockeyGame } from './elite-engine.mjs?v=ice-5.1';
+import {installElite} from './elite-ui.mjs?v=ice-5.1';
+import {customizeRoster,teamPresentation,teamPack} from './team-builder.mjs?v=ice-5.1';
+import { installExpansion } from './expansion-ui.mjs?v=ice-5.1';
 let expansion=null;
-import { RinkRenderer } from './render.mjs?v=ice-5';
-import { ArenaAudio } from './audio.mjs?v=ice-5';
-import { Controls, LABELS, keyLabel, DEFAULTS } from './controls.mjs?v=ice-5';
-import { RosterStore } from './roster-store.mjs?v=ice-5';
+import { RinkRenderer } from './render.mjs?v=ice-5.1';
+import { ArenaAudio } from './audio.mjs?v=ice-5.1';
+import { Controls, LABELS, keyLabel, DEFAULTS } from './controls.mjs?v=ice-5.1';
+import { RosterStore } from './roster-store.mjs?v=ice-5.1';
 const $=id=>document.getElementById(id);
 const audio=new ArenaAudio();let view=null,previousMode='menu',lastCountdown=0,modalClose=null,toastTimer=0,rafLast=0,accumulator=0,uiClock=0;
 const controls=new Controls();const keys=new Set(),touch={x:0,z:0,shoot:false,sprint:false,butterfly:false,recenter:false};
@@ -53,7 +53,7 @@ function anthemPrelude(preview=false){
  game.mode='intro';let finished=false;
  const proceed=()=>{if(finished)return;finished=true;if(anthemPlayer){anthemPlayer.pause();anthemPlayer.src='';anthemPlayer=null;}if(preview){game.mode='menu';hideModal();}else beginIntro('match');};
  showModal(`<div class="eyebrow">PRE-GAME CEREMONY</div><h2 id="modal-title">A MOMENT BEFORE THE PUCK.</h2><label>NATIONAL ANTHEM<select id="anthem-country"><option value="CA">O Canada · Canada</option><option value="US">The Star-Spangled Banner · United States</option></select></label><p>Instrumental performances: Toronto Symphony Orchestra, Peter Oundjian (Canada); United States Navy Band (US).</p><button id="anthem-play" class="primary">PLAY NATIONAL ANTHEM</button><button id="anthem-skip" class="secondary">SKIP · ENTER ARENA</button><p id="anthem-status" role="status">Your game waits until the anthem ends or you skip.</p>`,proceed);
- $('anthem-country').value=[0,1,2,3,4,7,22].includes(home)?'CA':'US';$('anthem-skip').onclick=proceed;$('anthem-play').onclick=async()=>{if(anthemPlayer)return;anthemPlayer=new Audio($('anthem-country').value==='CA'?'https://www.canada.ca/content/dam/pch/audios/services/anthems-canada/O-Canada.mp3':'https://upload.wikimedia.org/wikipedia/commons/6/65/Star_Spangled_Banner_instrumental.ogg');$('anthem-country').disabled=true;anthemPlayer.volume=audio.muted?0:.7;anthemPlayer.onended=proceed;anthemPlayer.onerror=()=>{if($('anthem-status'))$('anthem-status').textContent='Anthem could not load. You can skip and play.';};try{await anthemPlayer.play();if($('anthem-status'))$('anthem-status').textContent='Playing national anthem · skip at any time';}catch{if($('anthem-status'))$('anthem-status').textContent='Audio could not start. Skip to continue.';}};
+ $('anthem-country').value=[0,1,2,3,4,7,22].includes(home)?'CA':'US';$('anthem-skip').onclick=proceed;$('anthem-play').onclick=async()=>{if(anthemPlayer)return;$('anthem-status').textContent='Loading national anthem…';$('anthem-play').disabled=true;anthemPlayer=new Audio($('anthem-country').value==='CA'?'https://www.canada.ca/content/dam/pch/audios/services/anthems-canada/O-Canada.mp3':'https://upload.wikimedia.org/wikipedia/commons/6/65/Star_Spangled_Banner_instrumental.ogg');$('anthem-country').disabled=true;anthemPlayer.volume=audio.muted?0:.7;anthemPlayer.onended=proceed;const failed=()=>{if(anthemPlayer){anthemPlayer.pause();anthemPlayer=null;}if($('anthem-status')){$('anthem-status').textContent='Anthem could not load. Retry or skip to play.';$('anthem-play').disabled=false;$('anthem-country').disabled=false;}};anthemPlayer.onerror=failed;try{await anthemPlayer.play();if($('anthem-status'))$('anthem-status').textContent='Playing national anthem · skip at any time';}catch{failed();}};
 }
 function beginIntro(kind='opening'){
   if(!view)return;hideModal();resetInput();intro={kind,time:0};introPhase=-1;game.mode='intro';view.cinematic={time:0};$('cinematic').classList.remove('hidden');document.body.classList.add('watching-intro');const homePresentation=teamPresentation(game.settings,0,TEAMS);$('cinema-home').src=homePresentation.logo;$('cinema-home').alt=homePresentation.fullName;$('cinema-away').src=TEAMS[away].logo;$('cinema-away').alt=TEAMS[away].fullName;

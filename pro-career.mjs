@@ -1,4 +1,4 @@
-import {newCareer,nextFixture,recordResult,finishEliminated} from './career.mjs?v=ice-5';
+import {newCareer,nextFixture,recordResult,finishEliminated} from './career.mjs?v=ice-5.1';
 export const PRO_KEY='rink26.pro.v1';
 export function newPro(profile){return{version:1,profile:{name:'Rookie',number:26,position:'C',style:'balanced',hand:'L',...profile},phase:'showcase',showcase:0,draftScore:0,team:null,year:1,age:18,level:1,xp:0,points:0,attributes:{skating:65,shooting:65,passing:65,goalie:65},trust:50,chemistry:50,brand:0,fans:0,salary:850000,contract:3,stats:{gp:0,goals:0,assists:0,shots:0,saves:0,hits:0},log:['Your junior showcase begins. Three games to impress the scouts.'],awards:[],league:null,lastId:null,trained:null,choice:null};}
 export function proFixture(p){if(p.phase==='showcase')return{id:'showcase-'+p.showcase,opponent:(p.showcase*11+4)%32};return p.league?nextFixture(p.league):null;}

@@ -1,4 +1,4 @@
-import {HockeyGame,clamp} from './engine.mjs?v=ice-5';
+import {HockeyGame,clamp} from './engine.mjs?v=ice-5.1';
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const SHOTS=['wrist','slap','snap'];
 export class HockeyGamePlus extends HockeyGame {
