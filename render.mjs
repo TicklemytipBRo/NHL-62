@@ -1,7 +1,7 @@
-import {ArenaDetail} from './arena-detail.mjs?v=clubhouse-4';
-import {teamPresentation,teamPack} from './team-builder.mjs?v=clubhouse-4';
+import {ArenaDetail} from './arena-detail.mjs?v=clubhouse-4.1';
+import {teamPresentation,teamPack} from './team-builder.mjs?v=clubhouse-4.1';
 import * as THREE from './vendor/three.module.js';
-import { TEAMS, clamp } from './engine.mjs?v=clubhouse-4';
+import { TEAMS, clamp } from './engine.mjs?v=clubhouse-4.1';
 const UP=new THREE.Vector3(0,1,0);
 export class RinkRenderer {
   constructor(container,game){

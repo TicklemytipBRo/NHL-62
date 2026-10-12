@@ -1,4 +1,4 @@
-import {TEAMS} from './teams.mjs?v=clubhouse-4';
+import {TEAMS} from './teams.mjs?v=clubhouse-4.1';
 // Optional compatibility view for devices that cannot create a WebGL context.
 export class CompatibilityRenderer {
  constructor(container,game){this.game=game;this.cameraMode='broadcast';this.camera={aspect:1};this.cinematic=null;this.canvas=document.createElement('canvas');container.replaceChildren(this.canvas);this.ctx=this.canvas.getContext('2d');this.visualTime=0;this.flash=0;}

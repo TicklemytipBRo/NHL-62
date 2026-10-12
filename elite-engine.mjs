@@ -1,5 +1,5 @@
-import {HockeyGamePlus} from './upgrade-engine.mjs?v=clubhouse-4';
-import {clamp} from './engine.mjs?v=clubhouse-4';
+import {HockeyGamePlus} from './upgrade-engine.mjs?v=clubhouse-4.1';
+import {clamp} from './engine.mjs?v=clubhouse-4.1';
 export class EliteGame extends HockeyGamePlus {
  start(settings={},rosters){this.proStats={goals:0,assists:0,shots:0,saves:0,hits:0,passes:0};this.assistTouch=null;super.start(settings,rosters);this.proId=settings.playerMode==='goalie'?5:0;this.shiftRemaining=25+(settings.pro?.trust??50)*.2;this.benchRemaining=0;this.goalieRecovery=0;}
  initialSelected(){return this.settings.pro?this.settings.playerMode==='goalie'?5:0:super.initialSelected();}
