@@ -1,7 +1,7 @@
-import {ArenaDetail} from './arena-detail.mjs?v=clubhouse-4.1';
-import {teamPresentation,teamPack} from './team-builder.mjs?v=clubhouse-4.1';
+import {ArenaDetail} from './arena-detail.mjs?v=ice-5';
+import {teamPresentation,teamPack} from './team-builder.mjs?v=ice-5';
 import * as THREE from './vendor/three.module.js';
-import { TEAMS, clamp } from './engine.mjs?v=clubhouse-4.1';
+import { TEAMS, clamp } from './engine.mjs?v=ice-5';
 const UP=new THREE.Vector3(0,1,0);
 export class RinkRenderer {
   constructor(container,game){
@@ -18,7 +18,7 @@ export class RinkRenderer {
     key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-75,right:75,top:50,bottom:-50,near:1,far:160});key.shadow.bias=-.0005;key.shadow.normalBias=.06;this.scene.add(key);
     const fill=new THREE.DirectionalLight(0x85b8ff,1.3);fill.position.set(40,45,-45);this.scene.add(fill);
     this.goalLight=new THREE.PointLight(0xcefa54,0,70,1);this.goalLight.position.set(0,12,0);this.scene.add(this.goalLight);
-    this.matCache=new Map();this.boxGeometry=new THREE.BoxGeometry(1,1,1);this.sphereGeometry=new THREE.SphereGeometry(1,14,10);this.cylinderGeometry=new THREE.CylinderGeometry(1,1,1,14);
+    this.matCache=new Map();this.boxGeometry=new THREE.BoxGeometry(1,1,1);this.sphereGeometry=new THREE.SphereGeometry(1,20,14);this.cylinderGeometry=new THREE.CylinderGeometry(1,1,1,14);
     this.serviceGate=[];this.buildRink();this.buildStands();this.skaterGroup=new THREE.Group();this.scene.add(this.skaterGroup);this.players=[];this.rebuildPlayers();
     this.trainingMarker=new THREE.Mesh(new THREE.RingGeometry(2.8,3.3,40),new THREE.MeshBasicMaterial({color:0xcefa54,side:THREE.DoubleSide,depthTest:false,transparent:true,opacity:.8}));this.trainingMarker.rotation.x=-Math.PI/2;this.scene.add(this.trainingMarker);
     this.puckMesh=this.mesh(this.cylinderGeometry,0x050810,[.48,.25,.48],[0,.25,0]);this.puckMesh.castShadow=true;this.scene.add(this.puckMesh);
@@ -61,7 +61,7 @@ export class RinkRenderer {
     c.lineWidth=.6;for(let i=0;i<11000;i++){const x=random()*3072,z=random()*1536;c.strokeStyle=i%2?'#8fb4c00b':'#ffffff38';c.beginPath();c.moveTo(x,z);c.lineTo(x+random()*100-50,z+random()*35-17);c.stroke();}
     const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(this.renderer.capabilities.getMaxAnisotropy(),8);
     const geometry=new THREE.ShapeGeometry(shape,28);const uv=geometry.attributes.uv,pos=geometry.attributes.position;for(let i=0;i<uv.count;i++)uv.setXY(i,(pos.getX(i)+60)/120,(pos.getY(i)+30)/60);
-    const ice=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({map:texture,roughness:.3,metalness:.13,color:0xffffff}));ice.rotation.x=-Math.PI/2;ice.receiveShadow=true;this.scene.add(ice);
+    const ice=new THREE.Mesh(geometry,new THREE.MeshPhysicalMaterial({map:texture,roughness:.15,metalness:.18,clearcoat:1,clearcoatRoughness:.07,color:0xffffff}));this.iceMaterial=ice.material;ice.rotation.x=-Math.PI/2;ice.receiveShadow=true;this.scene.add(ice);
     const base=new THREE.Mesh(new THREE.ExtrudeGeometry(shape,{depth:2.2,bevelEnabled:false,curveSegments:28}),this.material(0x1c3148));base.rotation.x=-Math.PI/2;base.position.y=-2.25;this.scene.add(base);
     const outline=shape.getPoints(10);const glass=new THREE.MeshPhysicalMaterial({color:0x97d6ed,transparent:true,opacity:.1,roughness:.12,metalness:0,depthWrite:false,side:THREE.DoubleSide});
     for(let i=0;i<outline.length-1;i++){
@@ -126,7 +126,11 @@ export class RinkRenderer {
     torso.add(this.box(trim,[1.69,.27,1.17],[0,1.86,0]));if(team.jersey==='chevron'){const stripe=this.box(team.accent,[.15,1.5,1.16],[.2,2.35,0]);stripe.rotation.z=.6;torso.add(stripe);}else if(team.jersey==='hoops'){for(const y of [1.85,2.35,2.85])torso.add(this.box(team.accent,[1.7,.18,1.17],[0,y,0]));}else if(team.jersey==='pinstripe'){for(const z of [-.42,0,.42])torso.add(this.box(team.accent,[1.7,1.45,.065],[0,2.35,z]));}else if(team.jersey==='shoulder')torso.add(this.box(team.accent,[1.72,.48,1.18],[0,2.96,0]));else if(team.jersey==='classic')torso.add(this.box(team.accent,[1.7,.2,1.17],[0,2.25,0]));torso.add(this.box(p.team===0?(team.pants||0x16243c):0x16243c,[1.56,.65,.98],[0,1.25,0]));
     const head=this.mesh(this.sphereGeometry,0xc29172,[.6,.6,.58],[.13,3.65,0]);torso.add(head);
     const hat=this.mesh(this.sphereGeometry,helmet,[.73,.6,.7],[.08,3.9,0]);hat.castShadow=true;torso.add(hat);
-    torso.add(this.box(0xa7d4ec,[.13,.37,1.12],[.64,3.57,0],{transparent:true,opacity:.48,roughness:.2}));
+    // Face, helmet vents, collar and stitched shoulder panels.
+    for(const sign of [-1,1]){torso.add(this.mesh(this.sphereGeometry,0x18212b,[.065,.05,.04],[.65,3.64,sign*.22]));torso.add(this.box(trim,[.8,.05,.05],[-.08,4.3,sign*.26]));torso.add(this.box(team.accent,[.9,.08,.5],[0,3.13,sign*.55]));}
+    torso.add(this.mesh(this.sphereGeometry,0xc29172,[.14,.16,.13],[.72,3.5,0]));torso.add(this.box(trim,[.06,.12,.4],[.68,3.31,0]));torso.add(this.box(trim,[.4,.16,.7],[0,3.2,0]));
+    for(const y of [2.1,2.4,2.7])torso.add(this.box(team.accent,[.04,.04,.08],[.85,y,0]));
+    torso.add(this.box(team.visorTint||0xa7d4ec,[.13,.37,1.12],[.64,3.57,0],{transparent:true,opacity:.48,roughness:.2}));
     torso.add(this.box(team.accent,[.85,.32,.035],[.1,2.63,.58]));
     const legs=[];
     for(const sign of [-1,1]){
@@ -134,18 +138,20 @@ export class RinkRenderer {
       leg.add(this.box(p.team===0?(team.socks||jersey):jersey,[.65,.88,.59],[0,-.28,0]));leg.add(this.box(trim,[.68,.22,.62],[0,-.45,0]));
       leg.add(this.box(0x18222d,[1,.35,.56],[.1,-.8,0]));leg.add(this.box(0xa5bac2,[1.17,.1,.16],[.1,-1.02,0]));
       const arm=new THREE.Group();arm.position.set(.13,2.8,sign*.83);arm.rotation.z=.15;torso.add(arm);
-      arm.add(this.box(jersey,[.61,1.15,.62],[.1,-.38,0]));arm.add(this.box(trim,[.64,.22,.65],[.1,-.65,0]));arm.add(this.box(helmet,[.62,.45,.65],[.42,-.96,0]));
+      arm.add(this.box(jersey,[.61,1.15,.62],[.1,-.38,0]));arm.add(this.box(trim,[.64,.22,.65],[.1,-.65,0]));arm.add(this.box(team.gloves||helmet,[.62,.45,.65],[.42,-.96,0]));
     }
-    const stick=new THREE.Group();torso.add(stick);this.rod([.7,1.95,.8],[2.25,.18,1.3],.08,p.custom?p.stick:0x363529,stick);stick.add(this.box(p.custom?p.stick:0x303333,[1.2,.24,.21],[2.68,.17,1.3]));
+    const stick=new THREE.Group();torso.add(stick);this.rod([.7,1.95,.8],[2.25,.18,1.3],.08,p.custom?p.stick:(team.stick||0x363529),stick);stick.add(this.box(p.custom?p.stick:(team.stick||0x303333),[1.2,.24,.21],[2.68,.17,1.3]));
+    for(let i=0;i<5;i++)stick.add(this.box(team.tape||0xffffff,[.065,.26,.23],[2.25+i*.15,.17,1.3]));
     if(p.hand==='R')stick.scale.z=-1;
     if(p.goalie){
       for(const s of [-1,1])torso.add(this.box(p.custom?p.pads:p.team===0?(team.pads||0xe6edf0):0xe6edf0,[.65,1.48,.93],[.43,.9,s*.58]));
       torso.add(this.box(team.color,[.18,1.28,1.5],[.79,.9,0]));torso.add(this.box(0xe7f0f7,[.45,.75,.7],[1,1.8,-1.05]));
     }
+    const nameCanvas=document.createElement('canvas');nameCanvas.width=256;nameCanvas.height=48;const nc=nameCanvas.getContext('2d');nc.fillStyle=team.numberColor||'#ffffff';nc.font='bold 28px Arial';nc.textAlign='center';nc.fillText((p.lastName||p.name||'').toUpperCase().slice(0,18),128,32);const nameTex=new THREE.CanvasTexture(nameCanvas),nameMat=new THREE.MeshBasicMaterial({map:nameTex,transparent:true,side:THREE.DoubleSide});const nameMesh=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.26),nameMat);nameMesh.position.set(-.85,3.02,0);nameMesh.rotation.y=-Math.PI/2;torso.add(nameMesh);
     const numberCanvas=document.createElement('canvas');numberCanvas.width=64;numberCanvas.height=64;const c=numberCanvas.getContext('2d');c.fillStyle=p.team===0?(team.numberColor||'white'):team.dark;c.font='900 49px Arial';c.textAlign='center';c.fillText(String(p.number),32,50);const numberTex=new THREE.CanvasTexture(numberCanvas);numberTex.colorSpace=THREE.SRGBColorSpace;
     const numberMat=new THREE.MeshBasicMaterial({map:numberTex,transparent:true,side:THREE.DoubleSide,depthWrite:false});const number=new THREE.Mesh(new THREE.PlaneGeometry(1,1),numberMat);number.position.set(-.84,2.46,0);number.rotation.y=-Math.PI/2;torso.add(number);
     const shadow=new THREE.Mesh(new THREE.CircleGeometry(1.8,24),new THREE.MeshBasicMaterial({color:0x183147,transparent:true,opacity:.1,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.05;group.add(shadow);
-    this.skaterGroup.add(group);return{group,torso,legs,stick,shadow,disposable:[numberTex,numberMat,number.geometry,shadow.material,shadow.geometry]};
+    this.skaterGroup.add(group);return{group,torso,legs,stick,shadow,disposable:[nameTex,nameMat,nameMesh.geometry,numberTex,numberMat,number.geometry,shadow.material,shadow.geometry]};
   }
   resize(){this.width=this.container.clientWidth;this.height=this.container.clientHeight;this.renderer.setSize(this.width,this.height);this.camera.aspect=this.width/Math.max(1,this.height);this.camera.updateProjectionMatrix();}
   goal(team){this.flash=3;this.goalLight.color.set(TEAMS[team===0?this.game.settings.home:this.game.settings.away].color);this.goalLight.position.x=team===0?48:-48;
@@ -153,7 +159,7 @@ export class RinkRenderer {
     const colors=[0xcefa54,0xffffff,team===0?0xff681f:0xef334b];for(let i=0;i<75;i++){const mesh=new THREE.Mesh(new THREE.PlaneGeometry(.35,.7),new THREE.MeshBasicMaterial({color:colors[i%3],side:THREE.DoubleSide}));mesh.position.set((Math.random()-.5)*70,12+Math.random()*20,(Math.random()-.5)*32);this.scene.add(mesh);this.sparks.push({mesh,fall:4+Math.random()*4,spin:Math.random()*7});}
   }
   render(dt){
-    const g=this.game;if(this.rosterVersion!==g.rosterVersion)this.rebuildPlayers();this.visualTime+=dt;const inMenu=g.mode==='menu';
+    const g=this.game;if(this.rosterVersion!==g.rosterVersion)this.rebuildPlayers();this.visualTime+=dt;if(this.iceMaterial)this.iceMaterial.roughness=.4-(g.settings.club?.enabled?(g.settings.club.iceGloss??.82):.82)*.32;const inMenu=g.mode==='menu';
     let cx=0,cz=0;const aspect=this.camera.aspect;
     if(!inMenu&&aspect<1){cx=clamp(g.puck.x*.83,-33,33);cz=clamp(g.puck.z*.2,-4,4);}
     else if(!inMenu&&this.cameraMode==='follow'){cx=clamp(g.puck.x*.65,-26,26);cz=g.puck.z*.23;}

@@ -1,4 +1,4 @@
-import { TEAMS } from './teams.mjs?v=clubhouse-4.1';
+import { TEAMS } from './teams.mjs?v=ice-5';
 export { TEAMS };
 export const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const norm=(x,z)=>{const m=Math.hypot(x,z);return m>.001?{x:x/m,z:z/m}:{x:0,z:0}};

@@ -1,4 +1,4 @@
-import {HockeyGame,clamp} from './engine.mjs?v=clubhouse-4.1';
+import {HockeyGame,clamp} from './engine.mjs?v=ice-5';
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const SHOTS=['wrist','slap','snap'];
 export class HockeyGamePlus extends HockeyGame {
@@ -7,9 +7,11 @@ export class HockeyGamePlus extends HockeyGame {
   super.start(settings,rosters);this.matchType=settings.matchType??'exhibition';
   if(settings.customPlayer?.enabled){this.customPlayer={...settings.customPlayer};this.applyCustom();}else this.customPlayer=null;
   if(['shootout','goaliePractice','shooting','passing','skating'].includes(this.matchType)){
-   this.drill={type:this.matchType,attempt:0,total:this.matchType==='goaliePractice'?12:10,success:0,time:0,stage:'ready',turn:0,attempts:[0,0],goals:[0,0],gate:0};this.beginAttempt();
+   this.drill={type:this.matchType,attempt:0,total:this.matchType==='goaliePractice'?12:10,success:0,time:0,stage:'ready',turn:0,attempts:[0,0],goals:[0,0],gate:0};if(settings.practiceTheme==='inferno')this.drill.total=6;if(settings.practiceTheme==='storm')this.drill.total=16;this.beginAttempt();
   }
  }
+ switchPlayer(){if(this.drill&&this.drill.type!=='passing')return;super.switchPlayer();}
+ changeLine(team=0){if(this.drill)return false;return super.changeLine(team);}
  applyCustom(){const p=this.players[this.settings.playerMode==='goalie'?5:0];if(!p||!this.customPlayer)return;Object.assign(p,{...this.customPlayer,custom:true,nhlId:-1,lastName:this.customPlayer.name,role:p.goalie?'G':'C'});this.selected=p.id;this.rosterVersion++;}
  assignLine(team){super.assignLine(team);if(team===0&&this.customPlayer)this.applyCustom();}
  faceoff(announce=true,zone={x:0,z:0}){super.faceoff(announce,zone);this.faceoffTap=null;this.icing=null;this.applyPenalties();}
@@ -35,7 +37,7 @@ export class HockeyGamePlus extends HockeyGame {
  shoot(power=.45,p=this.players[this.selected],aim=null){
   const manual=p.team===0&&p.id===this.selected;const type=manual?this.shotType:(power>.7?'slap':'wrist');const startX=p.x;
   const ok=super.shoot(type==='slap'?Math.max(.65,power):type==='snap'?.4:Math.min(power,.7),p,aim??(manual?this.aimZ:null));
-  if(ok){const k=this.puck;const factor=type==='slap'?1.16:type==='snap'?1.05:.95;k.vx*=factor;k.vz*=factor;const flight=Math.abs((52*(p.team===0?1:-1)-k.x)/k.vx);const height=manual?this.aimHeight:(.5+this.random()*2.6);k.vy=clamp((height-.26+6*flight*flight)/Math.max(.15,flight),0,11);if(p.custom&&p.style==='sniper'){k.vx*=1.06;k.vz*=1.06;}p.shotType=type;this.icing={team:p.team,startX};this.emit('shotstyle',{style:type});}return ok;
+  if(ok){if(this.drill)this.drill.shotTaken=true;const k=this.puck;const factor=type==='slap'?1.16:type==='snap'?1.05:.95;k.vx*=factor;k.vz*=factor;const flight=Math.abs((52*(p.team===0?1:-1)-k.x)/k.vx);const height=manual?this.aimHeight:(.5+this.random()*2.6);k.vy=clamp((height-.26+6*flight*flight)/Math.max(.15,flight),0,11);if(p.custom&&p.style==='sniper'){k.vx*=1.06;k.vz*=1.06;}p.shotType=type;this.icing={team:p.team,startX};this.emit('shotstyle',{style:type});}return ok;
  }
  pass(p=this.players[this.selected],input={x:0,z:0}){if(this.mode==='faceoff')return this.drawFaceoff();const ok=super.pass(p,input);if(ok){this.icing={team:p.team,startX:p.x};this.lastPass={team:p.team,from:p.id,to:this.puck.passTarget,time:this.elapsed};}return ok;}
  gainPuck(p){const pass=this.lastPass;super.gainPuck(p);this.icing=null;
@@ -53,7 +55,7 @@ export class HockeyGamePlus extends HockeyGame {
   }}
  }
  goal(team){
-  if(this.drill){this.drill.goals[team]++;this.score[team]++;if(this.drill.type==='shooting'&&team===0&&Math.abs(this.puck.z-this.target.z)<1.65)this.drill.success++;this.finishAttempt(team===0);this.emit('goal',{team,score:[...this.score]});return;}
+  if(this.drill){if(this.drill.stage!=='live')return;this.drill.goals[team]++;this.score[team]++;if(this.drill.type==='shooting'&&team===0&&Math.abs(this.puck.z-this.target.z)<1.65)this.drill.success++;this.finishAttempt(team===0);this.emit('goal',{team,score:[...this.score]});return;}
   // A power-play goal releases the oldest opposing minor.
   const own=this.penalties.filter(n=>n.team===team).length,other=this.penalties.filter(n=>n.team!==team);if(other.length>own){this.penalties.splice(this.penalties.indexOf(other[0]),1);this.applyPenalties();}
   const frames=this.replayFrames?.slice(-180)??[];super.goal(team);if(this.settings.replays!==false&&frames.length>12){this.replay={frames,time:0,live:this.capture()};this.mode='replay';this.emit('replay');}
@@ -62,7 +64,7 @@ export class HockeyGamePlus extends HockeyGame {
  pose(frame){this.players.forEach((p,i)=>Object.assign(p,frame.players[i]));Object.assign(this.puck,frame.puck);}
  skipReplay(){if(!this.replay)return;this.pose(this.replay.live);this.replay=null;this.replayFrames=[];this.mode='goal';this.phaseTimer=1.3;}
  beginAttempt(){
-  const d=this.drill;if(!d)return;d.attempt++;d.time=0;d.stage='ready';this.mode='faceoff';this.phaseTimer=1.5;this.charge=0;this.stamina=1;this.setupPlayers();
+  const d=this.drill;if(!d)return;this.shiftTime=0;this.lastPass=null;d.shotTaken=false;d.attempt++;d.time=0;d.stage='ready';this.mode='faceoff';this.phaseTimer=1.5;this.charge=0;this.stamina=1;this.setupPlayers();
   const keeper=d.type==='goaliePractice',away=d.type==='shootout'&&d.turn===1;
   const active=keeper||away?[5,6]:d.type==='passing'?[0,1,2,3,4]:d.type==='skating'?[0]:[0,11];
   for(const p of this.players){p.active=active.includes(p.id);p.x=p.goalie?(p.team===0?-49:49):p.team===0?-20:20;p.z=0;p.cooldown=0;}
@@ -70,7 +72,7 @@ export class HockeyGamePlus extends HockeyGame {
   if(keeper){carrier.x=-8;carrier.z=(this.random()-.5)*34;}
   if(d.type==='passing')this.players.filter(p=>p.team===0&&!p.goalie).forEach((p,i)=>{p.x=-20+i*9;p.z=i%2?14:-12;});
   if(d.type==='skating'){this.gates=[[-20,-15],[0,15],[20,-15],[38,10],[25,20],[0,-20],[-25,12],[-40,0]];this.selected=0;}
-  this.puck.owner=carrier.id;this.puck.x=carrier.x;this.puck.z=carrier.z;this.puck.y=.23;this.puck.vx=this.puck.vz=this.puck.vy=0;this.puck.lock=0;this.puck.shot=false;this.target={z:(d.attempt%2?1:-1)*2.8};this.rosterVersion++;
+  this.puck.owner=carrier.id;this.puck.x=carrier.x;this.puck.z=carrier.z;this.puck.y=.23;this.puck.vx=this.puck.vz=this.puck.vy=0;this.puck.lock=0;this.puck.shot=false;this.target={z:(d.attempt%2?1:-1)*2.8};if(this.settings.practiceTheme==='aurora')this.gates=[[-25,-18],[-12,18],[0,-18],[12,18],[28,-18],[40,18],[15,0],[-35,0]];if(this.settings.practiceTheme==='ocean')this.players.filter(p=>p.team===0&&!p.goalie).forEach((p,i)=>{p.x=-32+i*15;p.z=i%2?20:-20;});this.rosterVersion++;
  }
  finishAttempt(scored=false){const d=this.drill;if(!d||d.stage==='pause'||d.stage==='done')return;
   if(d.type==='goaliePractice'&&!scored&&this.score[1]===d.conceded&&this.stats.saves[0]>(d.savedAtStart??0))d.success++;d.stage='pause';this.phaseTimer=1.4;this.mode='frozen';
@@ -85,16 +87,17 @@ export class HockeyGamePlus extends HockeyGame {
   if(this.mode==='faceoff'){this.phaseTimer-=dt;if(this.phaseTimer<=0){this.mode='play';d.stage='live';d.conceded=this.score[1];d.savedAtStart=this.stats.saves[0];this.emit('puckdrop');}return;}
   if(this.mode!=='play')return;d.time+=dt;this.clock=Math.max(0,(d.type==='skating'||d.type==='passing'?60:12)-d.time);
   // Keep base regulation/intermission logic out of drills.
-  const clock=this.clock;this.clock=999;super.update(dt,input);this.clock=clock;
+  const clock=this.clock;this.clock=999;this.shiftTime=0;if(d.type==='shootout'){this.selected=0;if(d.turn===1)input={};}super.update(dt,input);this.clock=clock;
   if(d.stage==='pause')return;
   if(d.type==='goaliePractice'){
-   const shooter=this.players[6];if(this.puck.owner===6&&d.time>.8){this.shoot(.45+this.random()*.5,shooter,(this.random()-.5)*8);}
+   const shooter=this.players[6];if(this.puck.owner===6&&d.time>.8){this.shoot(this.settings.practiceTheme==='storm'?.95:.45+this.random()*.5,shooter,(this.random()-.5)*8);}
    if(this.puck.owner===5||d.time>5||(this.puck.owner===null&&this.puck.vx>0)){this.finishAttempt(false);}
   }else if(d.type==='skating'){
    const gate=this.gates[d.gate];if(gate&&Math.hypot(this.players[0].x-gate[0],this.players[0].z-gate[1])<4){d.gate++;d.success++;this.emit('gate');}
    if(d.gate>=8||d.time>=60)this.finishAttempt();
   }else if(d.type==='passing'){if(d.time>=60||d.success>=10)this.finishAttempt();}
-  else if(d.time>=12||(this.puck.owner!==null&&this.players[this.puck.owner].goalie))this.finishAttempt();
+  else if(d.type==='shootout'&&d.shotTaken&&this.puck.owner===null&&((d.turn===0&&this.puck.vx<0)||(d.turn===1&&this.puck.vx>0)||Math.abs(this.puck.x)>55)){this.finishAttempt();}
+  else if(d.time>=(this.settings.practiceTheme==='inferno'?8:12)||(this.puck.owner!==null&&this.players[this.puck.owner].goalie))this.finishAttempt();
  }
  update(dt,input={}){
   if(this.mode==='replay'){this.replay.time+=dt;const i=Math.floor(this.replay.time*30);if(i>=this.replay.frames.length)this.skipReplay();else this.pose(this.replay.frames[i]);return;}

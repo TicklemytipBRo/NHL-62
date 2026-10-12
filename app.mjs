@@ -1,14 +1,15 @@
-import {installClubhouse} from './clubhouse-ui.mjs?v=clubhouse-4.1';
-import { TEAMS, clamp } from './engine.mjs?v=clubhouse-4.1';
-import { EliteGame as HockeyGame } from './elite-engine.mjs?v=clubhouse-4.1';
-import {installElite} from './elite-ui.mjs?v=clubhouse-4.1';
-import {customizeRoster,teamPresentation,teamPack} from './team-builder.mjs?v=clubhouse-4.1';
-import { installExpansion } from './expansion-ui.mjs?v=clubhouse-4.1';
+import {installRinkUpdate} from './rink-update.mjs?v=ice-5';
+import {installClubhouse} from './clubhouse-ui.mjs?v=ice-5';
+import { TEAMS, clamp } from './engine.mjs?v=ice-5';
+import { EliteGame as HockeyGame } from './elite-engine.mjs?v=ice-5';
+import {installElite} from './elite-ui.mjs?v=ice-5';
+import {customizeRoster,teamPresentation,teamPack} from './team-builder.mjs?v=ice-5';
+import { installExpansion } from './expansion-ui.mjs?v=ice-5';
 let expansion=null;
-import { RinkRenderer } from './render.mjs?v=clubhouse-4.1';
-import { ArenaAudio } from './audio.mjs?v=clubhouse-4.1';
-import { Controls, LABELS, keyLabel, DEFAULTS } from './controls.mjs?v=clubhouse-4.1';
-import { RosterStore } from './roster-store.mjs?v=clubhouse-4.1';
+import { RinkRenderer } from './render.mjs?v=ice-5';
+import { ArenaAudio } from './audio.mjs?v=ice-5';
+import { Controls, LABELS, keyLabel, DEFAULTS } from './controls.mjs?v=ice-5';
+import { RosterStore } from './roster-store.mjs?v=ice-5';
 const $=id=>document.getElementById(id);
 const audio=new ArenaAudio();let view=null,previousMode='menu',lastCountdown=0,modalClose=null,toastTimer=0,rafLast=0,accumulator=0,uiClock=0;
 const controls=new Controls();const keys=new Set(),touch={x:0,z:0,shoot:false,sprint:false,butterfly:false,recenter:false};
@@ -45,11 +46,18 @@ function start(type="exhibition"){
   if(!view){toast('Enable graphics acceleration and reload to play in 3D.');return;}const h=rosterStore.get(TEAMS[home].short),a=rosterStore.get(TEAMS[away].short);if(!h||!a){toast('Wait for both team rosters to load');return;}
   audio.unlock().catch(()=>{});resetInput();hideModal();
   const matchOptions=expansion.options(type);if(matchOptions.club.enabled){const roster=expansion.homeRoster(h.players,matchOptions.club);chosenSkaters[TEAMS[home].short]=roster.find(p=>!['D','G'].includes(p.position))?.id;chosenGoalies[TEAMS[home].short]=roster.find(p=>p.position==='G')?.id;}game.start({...matchOptions,home,away,difficulty:$('difficulty').value,periodLength:Number($('period-length').value),playerMode,homeSkater:chosenSkaters[TEAMS[home].short],homeGoalie:chosenGoalies[TEAMS[home].short],awaySkater:chosenSkaters[TEAMS[away].short],awayGoalie:chosenGoalies[TEAMS[away].short]},[customizeRoster(expansion.homeRoster(h.players,matchOptions.club),matchOptions.club),a.players]);
-  view.rebuildPlayers();$('home-abbr').textContent=teamPresentation(game.settings,0,TEAMS).short;$('camera').querySelector('span').textContent=playerMode==='goalie'?'Goalie':view.cameraMode==='broadcast'?'Broadcast':'Follow';$('menu').classList.add('hidden');$('hud').classList.add('hidden');$('pause').classList.add('hidden');document.body.classList.add('playing');document.body.classList.toggle('goalie-mode',playerMode==='goalie');$('touch-controls').classList.add('hidden');$('start').blur();previousMode='';refreshHints();beginIntro('match');
+  view.rebuildPlayers();$('home-abbr').textContent=teamPresentation(game.settings,0,TEAMS).short;$('camera').querySelector('span').textContent=playerMode==='goalie'?'Goalie':view.cameraMode==='broadcast'?'Broadcast':'Follow';$('menu').classList.add('hidden');$('hud').classList.add('hidden');$('pause').classList.add('hidden');document.body.classList.add('playing');document.body.classList.toggle('goalie-mode',playerMode==='goalie');$('touch-controls').classList.add('hidden');$('start').blur();previousMode='';refreshHints();if(game.drill){beginIntro('match');finishIntro();}else anthemPrelude();
+}
+let anthemPlayer=null;
+function anthemPrelude(preview=false){
+ game.mode='intro';let finished=false;
+ const proceed=()=>{if(finished)return;finished=true;if(anthemPlayer){anthemPlayer.pause();anthemPlayer.src='';anthemPlayer=null;}if(preview){game.mode='menu';hideModal();}else beginIntro('match');};
+ showModal(`<div class="eyebrow">PRE-GAME CEREMONY</div><h2 id="modal-title">A MOMENT BEFORE THE PUCK.</h2><label>NATIONAL ANTHEM<select id="anthem-country"><option value="CA">O Canada · Canada</option><option value="US">The Star-Spangled Banner · United States</option></select></label><p>Instrumental performances: Toronto Symphony Orchestra, Peter Oundjian (Canada); United States Navy Band (US).</p><button id="anthem-play" class="primary">PLAY NATIONAL ANTHEM</button><button id="anthem-skip" class="secondary">SKIP · ENTER ARENA</button><p id="anthem-status" role="status">Your game waits until the anthem ends or you skip.</p>`,proceed);
+ $('anthem-country').value=[0,1,2,3,4,7,22].includes(home)?'CA':'US';$('anthem-skip').onclick=proceed;$('anthem-play').onclick=async()=>{if(anthemPlayer)return;anthemPlayer=new Audio($('anthem-country').value==='CA'?'https://www.canada.ca/content/dam/pch/audios/services/anthems-canada/O-Canada.mp3':'https://upload.wikimedia.org/wikipedia/commons/6/65/Star_Spangled_Banner_instrumental.ogg');$('anthem-country').disabled=true;anthemPlayer.volume=audio.muted?0:.7;anthemPlayer.onended=proceed;anthemPlayer.onerror=()=>{if($('anthem-status'))$('anthem-status').textContent='Anthem could not load. You can skip and play.';};try{await anthemPlayer.play();if($('anthem-status'))$('anthem-status').textContent='Playing national anthem · skip at any time';}catch{if($('anthem-status'))$('anthem-status').textContent='Audio could not start. Skip to continue.';}};
 }
 function beginIntro(kind='opening'){
   if(!view)return;hideModal();resetInput();intro={kind,time:0};introPhase=-1;game.mode='intro';view.cinematic={time:0};$('cinematic').classList.remove('hidden');document.body.classList.add('watching-intro');const homePresentation=teamPresentation(game.settings,0,TEAMS);$('cinema-home').src=homePresentation.logo;$('cinema-home').alt=homePresentation.fullName;$('cinema-away').src=TEAMS[away].logo;$('cinema-away').alt=TEAMS[away].fullName;
-  if(kind==='match'){audio.cinematic();expansion.intro();}$('skip-intro').focus();
+  if(kind==='match'&&!game.drill){audio.cinematic();expansion.intro();}$('skip-intro').focus();
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)finishIntro();
 }
 function finishIntro(){
@@ -126,6 +134,7 @@ function showFinal(){if(expansion.final())return;const win=game.score[0]>game.sc
 function cameraToggle(){view.cameraMode=view.cameraMode==='broadcast'?'follow':'broadcast';$('camera').querySelector('span').textContent=game.settings.playerMode==='goalie'?(view.cameraMode==='broadcast'?'Goalie':'High goalie'):(view.cameraMode==='broadcast'?'Broadcast':'Follow');}
 $('mode-skater').onclick=()=>setMode('skater');$('mode-goalie').onclick=()=>setMode('goalie');$('home-player').onchange=()=>{(playerMode==='goalie'?chosenGoalies:chosenSkaters)[TEAMS[home].short]=Number($('home-player').value);applyRosterPreview();};$('home-roster').onclick=()=>showRoster(TEAMS[home].short);$('away-roster').onclick=()=>showRoster(TEAMS[away].short);$('all-rosters').onclick=()=>showRoster();$('sync-now').onclick=()=>rosterStore.sync();$('replay-intro').onclick=()=>beginIntro('opening');$('skip-intro').onclick=finishIntro;$('intro-sound').onclick=async()=>{await audio.unlock();if(audio.muted)audio.toggle();audio.cinematic();$('intro-sound').textContent='SOUND ENABLED';};
 $('start').onclick=start;$('pause').onclick=showPause;$('how-to').onclick=showControls;$('help-game').onclick=showControls;$('camera').onclick=cameraToggle;
+$('sound').addEventListener('click',()=>{if(anthemPlayer)queueMicrotask(()=>anthemPlayer.volume=audio.muted?0:.7);});
 $('sound').onclick=()=>{const first=!audio.ctx;audio.unlock().catch(()=>{});const muted=first?audio.muted:audio.toggle();$('sound').classList.toggle('muted',muted);$('sound').setAttribute('aria-label',muted?'Unmute audio':'Mute audio');$('sound').title=muted?'Sound off':'Sound on';};
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('Fullscreen is unavailable in this browser');}catch{toast('Fullscreen is unavailable in this browser');}};
 function input(){if(game.zamboni)return{x:(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0),z:(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0),shoot:keys.has('Space')||keys.has('Mouse0'),stop:keys.has('KeyB')};const mode=game.settings.playerMode;const held=a=>controls.held(mode,a,keys);let x=(held('right')?1:0)-(held('left')?1:0)+touch.x,z=(held('down')?1:0)-(held('up')?1:0)+touch.z;const n=Math.hypot(x,z);if(n>1){x/=n;z/=n;}return{x,z,stop:held('stop')||touch.stop,oneTimer:held('oneTimer')||touch.oneTimer,aimDirection:(held('aimRight')?1:0)-(held('aimLeft')?1:0),aimVertical:(held('aimHigh')?1:0)-(held('aimLow')?1:0),shoot:held('shoot')||touch.shoot,sprint:held('sprint')||touch.sprint,butterfly:held('butterfly')||touch.butterfly,recenter:held('recenter')||touch.recenter};}
@@ -200,7 +209,7 @@ function syncUI(){
     if(n!==lastCountdown){audio.tone(n===1?740:520,.11,'sine',.08);lastCountdown=n;}
   }else if(game.mode==='goal'){
     const team=teamPresentation(game.settings,game.lastGoal.team,TEAMS);$('callout').classList.remove('hidden');$('callout-kicker').textContent=`${team.city.toUpperCase()} SCORES`;$('callout-title').textContent='GOOOAL!';$('callout-detail').textContent=`${game.lastGoal.scorerName} · ${teamPresentation(game.settings,0,TEAMS).short} ${game.score[0]}  –  ${game.score[1]} ${TEAMS[away].short}`;
-  }else if(game.mode==='frozen'){$('callout').classList.remove('hidden');$('callout-kicker').textContent='PLAY STOPPED';$('callout-title').textContent='PUCK FROZEN';$('callout-detail').textContent='Faceoff in the defensive zone.';}else{$('callout').classList.add('hidden');lastCountdown=0;}
+  }else if(game.mode==='frozen'){$('callout').classList.remove('hidden');$('callout-kicker').textContent='PLAY STOPPED';$('callout-title').textContent=game.drill?'ATTEMPT COMPLETE':'PUCK FROZEN';$('callout-detail').textContent=game.drill?'Next attempt coming up.':'Faceoff in the defensive zone.';}else{$('callout').classList.add('hidden');lastCountdown=0;}
   if(game.mode!==previousMode){const mode=game.mode;previousMode=mode;if(mode==='intermission')showIntermission();if(mode==='final')showFinal();}
   drawMap();expansion?.tick();
 }
@@ -208,8 +217,8 @@ function frame(t){const dt=Math.min((t-(rafLast||t))/1000,.05);rafLast=t;accumul
   advanceIntro(dt);while(accumulator>=1/120){if(!expansion.updateMini(1/120,input()))game.update(1/120,input());accumulator-=1/120;}
   view.render(dt);uiClock+=dt;if(uiClock>.06){syncUI();uiClock=0;}requestAnimationFrame(frame);
 }
-const expansionAPI={game,audio,rosterStore,refreshClub,controlLabel:(mode,action)=>keyLabel(controls.maps[mode][action]||action),showModal,hideModal,toast,start,setMode,returnToMenu,showIntermission,has3D:()=>!!view,refreshView:()=>view?.rebuildPlayers(),impact:(x,z)=>view?.decor?.impact(x,z),passKey:()=>keyLabel(controls.maps.skater.pass),setTeams:(h,a)=>{$('home-team').value=h;$('away-team').value=a;updateTeams();}};
-expansion=installClubhouse(expansionAPI,installElite(expansionAPI,installExpansion(expansionAPI)));refreshClub();
+const expansionAPI={previewCeremony:()=>anthemPrelude(true),game,audio,rosterStore,refreshClub,controlLabel:(mode,action)=>keyLabel(controls.maps[mode][action]||action),showModal,hideModal,toast,start,setMode,returnToMenu,showIntermission,has3D:()=>!!view,refreshView:()=>view?.rebuildPlayers(),impact:(x,z)=>view?.decor?.impact(x,z),passKey:()=>keyLabel(controls.maps.skater.pass),setTeams:(h,a)=>{$('home-team').value=h;$('away-team').value=a;updateTeams();}};
+expansion=installRinkUpdate(expansionAPI,installClubhouse(expansionAPI,installElite(expansionAPI,installExpansion(expansionAPI))));refreshClub();
 function refreshClub(){
  if(!expansion)return;const club=expansion.club();let option=$('home-team').querySelector('option[value="club"]');if(!option){option=document.createElement('option');option.value='club';$('home-team').appendChild(option);}option.textContent='★ '+club.city+' '+club.name+' (Custom)';
  $('home-team').value=club.enabled?'club':String(home);game.settings.club={...club};rosterSignature='';updateTeams('home');

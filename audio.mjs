@@ -16,6 +16,15 @@ export class ArenaAudio {
     if(this.ctx.state!=='running')throw new Error('Click to enable audio');
     return new Promise((resolve,reject)=>{const node=this.ctx.createBufferSource(),gain=this.ctx.createGain();node.buffer=this.voiceCache.get(id);gain.gain.value=volume;node.connect(gain).connect(this.master);node.onended=resolve;try{node.start();onStart();}catch(e){reject(e);}});
   }
+  async crowdChant(){
+    if(this.muted)return;await this.unlock();if(!this.ctx)return;
+    if(!this.voiceCache.has('chant')){const r=await fetch('./assets/voice/chant.mp3');if(!r.ok)return;this.voiceCache.set('chant',await this.ctx.decodeAudioData(await r.arrayBuffer()));}
+    const c=this.ctx,buffer=this.voiceCache.get('chant'),t=c.currentTime;
+    for(let wave=0;wave<2;wave++)for(let i=0;i<9;i++){
+      const voice=c.createBufferSource(),gain=c.createGain(),pan=c.createStereoPanner(),echo=c.createDelay(2),tail=c.createGain();voice.buffer=buffer;voice.playbackRate.value=.79+i*.035;gain.gain.value=.09;pan.pan.value=(i-4)/5;echo.delayTime.value=.34+i*.045;tail.gain.value=.27;
+      voice.connect(gain).connect(pan).connect(this.effects);pan.connect(echo).connect(tail).connect(this.effects);tail.connect(echo);voice.start(t+wave*4.5+i*.045);voice.onended=()=>setTimeout(()=>{voice.disconnect();gain.disconnect();pan.disconnect();echo.disconnect();tail.disconnect();},2400);
+    }this.cheer();
+  }
   toggle(){this.muted=!this.muted;if(this.master)this.master.gain.setTargetAtTime(this.muted?0:.7,this.ctx.currentTime,.03);return this.muted;}
   tone(freq,duration=.1,type='sine',vol=.15,delay=0,end=null){if(!this.ctx||this.muted)return;const t=this.ctx.currentTime+delay,o=this.ctx.createOscillator(),v=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(end)o.frequency.exponentialRampToValueAtTime(end,t+duration);v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(vol,t+.009);v.gain.exponentialRampToValueAtTime(.001,t+duration);o.connect(v).connect(this.effects);o.start(t);o.stop(t+duration+.05);return o;}
   noise(duration=.12,vol=.3,freq=1700){if(!this.ctx||this.muted)return;const t=this.ctx.currentTime,buf=this.ctx.createBuffer(1,this.ctx.sampleRate*duration,this.ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);const s=this.ctx.createBufferSource();s.buffer=buf;const f=this.ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=freq;const v=this.ctx.createGain();v.gain.value=vol;s.connect(f).connect(v).connect(this.effects);s.start(t);}

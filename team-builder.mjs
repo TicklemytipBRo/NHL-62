@@ -12,7 +12,7 @@ export const PACKS=[
  ['cosmic','Cosmic Ice','#9ca6ff',10,0.28,'One arena. A universe of possibilities.'],
  ['steel','Steel City','#b6cbdc',11,0.18,'Forged by the city. Driven by the fans.']
 ].map(([id,name,color,seed,ripple,line])=>({id,name,color,seed,ripple,line}));
-export const defaultTeam=()=>({enabled:false,city:'North Bay',name:'Guardians',short:'NBG',arena:'Glasswater Arena',color:'#1263b5',dark:'#09203d',accent:'#74edff',pack:'glacier',jersey:'stripe',glass:1,sponsor:'FROST FUEL',chant:'Let’s go Guardians!',rosterNames:[],baseTeam:0,lineup:{},crest:'shield',socks:'#ffffff',pants:'#09203d',helmet:'#09203d',pads:'#e6edf0',numberColor:'#ffffff'});
+export const defaultTeam=()=>({enabled:false,city:'North Bay',name:'Guardians',short:'NBG',arena:'Glasswater Arena',color:'#1263b5',dark:'#09203d',accent:'#74edff',pack:'glacier',jersey:'stripe',glass:1,sponsor:'FROST FUEL',chant:'Let’s go Guardians!',rosterNames:[],baseTeam:0,lineup:{},crest:'shield',socks:'#ffffff',pants:'#09203d',helmet:'#09203d',pads:'#e6edf0',numberColor:'#ffffff',gloves:'#09203d',stick:'#303333',tape:'#ffffff',visorTint:'#bcefff',iceGloss:.82});
 export const teamPack=t=>PACKS.find(p=>p.id===t?.pack)||PACKS[0];
 export function teamPresentation(settings,side,teams){const team=teams[side===0?settings.home:settings.away];return side===0&&settings.club?.enabled?{...team,...settings.club,fullName:settings.club.city+' '+settings.club.name,logo:clubLogo(settings.club)}:team;}
 export function customizeRoster(roster,club){if(!club?.enabled)return roster;return roster.map((p,i)=>club.rosterNames?.[i]?{...p,name:club.rosterNames[i],lastName:club.rosterNames[i]}:p);}

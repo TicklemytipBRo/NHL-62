@@ -76,3 +76,8 @@ Verification: `node --test tests/*.test.mjs`. Tests cover season accounting, the
 - **Gretzky Hockey School** has six fictional fan-tutorial lessons, a CC0 photograph of Wayne Gretzky above the lesson text, generic computer narration, current key bindings, and buttons to launch matching practice drills. Neither the script nor the voice is an authentic statement by Gretzky. Photo and voice credits are in `assets/CREDITS.md`.
 
 Player availability follows the NHL feeds: retired players and prospects absent from those feeds are not part of the current-player pack pool. Saves and card collections stay in this browser.
+
+## Ice & Coins update
+Wallet starts at 0. Complete all four live tutorial objectives to earn 500 once; progress is saved locally. Completed matches award 150 (+100 for a win); successful drills award 100. Tutorial retries do not farm coins. Pack prices/cards: Bronze 500/5, Silver 650/15, Gold 800/25, Emerald 900/32, Diamond 1100/65, Ice Special 5000/50. All synced NHL players are equally eligible in every pack; higher prices do not imply rarity odds. No real money. Local browser saves are not a secure online economy. Existing collections are retained.
+
+Guided tutorial, four themed drills, layered crowd chant, Canadian/US anthem play-or-skip ceremony, cursor-tilted cards and translucent glass panels. Anthems stream from credited external hosts and can always be skipped. 3D requires WebGL; enable graphics acceleration in Windows Chrome/Edge.
