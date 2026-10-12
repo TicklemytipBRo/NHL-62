@@ -1,8 +1,8 @@
-import {TEAMS} from './teams.mjs';
-import {PACKS,defaultTeam,teamPack,teamPresentation} from './team-builder.mjs';
-import {newPro,proFixture,objective,recordPro,signPro,nextProYear,trainPro,upgradePro,chooseInterview,PRO_KEY} from './pro-career.mjs';
-import {Zamboni} from './zamboni.mjs';
-import {BroadcastQueue} from './broadcast.mjs';
+import {TEAMS} from './teams.mjs?v=clubhouse-4';
+import {PACKS,defaultTeam,teamPack,teamPresentation} from './team-builder.mjs?v=clubhouse-4';
+import {newPro,proFixture,objective,recordPro,signPro,nextProYear,trainPro,upgradePro,chooseInterview,PRO_KEY} from './pro-career.mjs?v=clubhouse-4';
+import {Zamboni} from './zamboni.mjs?v=clubhouse-4';
+import {BroadcastQueue} from './broadcast.mjs?v=clubhouse-4';
 const $=id=>document.getElementById(id),safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function installElite(api,base){const {game,audio,showModal,hideModal,toast,start,setTeams,setMode,returnToMenu}=api;let club=defaultTeam(),pro=null,fixture=null,reported=false;try{club={...club,...JSON.parse(localStorage.getItem('rink26.club')||'{}')};pro=JSON.parse(localStorage.getItem(PRO_KEY)||'null');}catch{}const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{toast('Storage unavailable. This session still works.');}};
  const introCaption=document.createElement('div');introCaption.id='announcer-caption';introCaption.setAttribute('aria-live','polite');$('cinematic').appendChild(introCaption);let captionUntil=0;const broadcast=new BroadcastQueue(audio,text=>{$('broadcast-strip').textContent=text;introCaption.textContent=text;captionUntil=performance.now()+6000;});

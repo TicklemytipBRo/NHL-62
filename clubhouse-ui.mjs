@@ -1,6 +1,6 @@
-import {playerPool,drawPack,collect,assignCard,buildClubRoster,SLOTS,fitsSlot,COLLECTION_KEY} from './collection.mjs';
-import {TEAMS} from './teams.mjs';
-import {defaultTeam,clubLogo} from './team-builder.mjs';
+import {playerPool,drawPack,collect,assignCard,buildClubRoster,SLOTS,fitsSlot,COLLECTION_KEY} from './collection.mjs?v=clubhouse-4';
+import {TEAMS} from './teams.mjs?v=clubhouse-4';
+import {defaultTeam,clubLogo} from './team-builder.mjs?v=clubhouse-4';
 const $=id=>document.getElementById(id),safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LESSONS=[
  ['SKATE INTO SPACE','Use {up}, {left}, {down}, {right} to skate. Hold {sprint} to sprint. Release sprint and hold {stop} to stop sharply. Look for open ice before chasing the puck.','skating'],
