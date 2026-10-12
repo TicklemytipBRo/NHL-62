@@ -1,5 +1,5 @@
-import {TEAMS} from './teams.mjs?v=ice-5.1';
-import {newCareer,nextFixture,recordResult,rankings,finishEliminated,loadCareer,CAREER_KEY} from './career.mjs?v=ice-5.1';
+import {TEAMS} from './teams.mjs?v=ice-5.2';
+import {newCareer,nextFixture,recordResult,rankings,finishEliminated,loadCareer,CAREER_KEY} from './career.mjs?v=ice-5.2';
 const $=id=>document.getElementById(id),safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function installExpansion(api){
  const {game,showModal,hideModal,toast,start,setTeams,setMode,returnToMenu}=api;let storage;try{storage=localStorage;}catch{}let career=loadCareer(storage),fixture=null,reported=false;

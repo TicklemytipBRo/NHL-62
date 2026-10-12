@@ -1,5 +1,5 @@
-import {PACK_TYPES,freshWallet,completeLesson,purchase,TRAINING,THEMES} from './economy.mjs?v=ice-5.1';
-import {playerPool,collect,COLLECTION_KEY} from './collection.mjs?v=ice-5.1';
+import {PACK_TYPES,freshWallet,completeLesson,purchase,TRAINING,THEMES} from './economy.mjs?v=ice-5.2';
+import {playerPool,collect,COLLECTION_KEY} from './collection.mjs?v=ice-5.2';
 const $=id=>document.getElementById(id),safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function installRinkUpdate(api,base){
  let wallet=freshWallet(),collection={};try{wallet={...wallet,...JSON.parse(localStorage.getItem('rink26.wallet')||'{}')};collection=JSON.parse(localStorage.getItem(COLLECTION_KEY)||'{}');}catch{}

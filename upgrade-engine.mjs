@@ -1,4 +1,4 @@
-import {HockeyGame,clamp} from './engine.mjs?v=ice-5.1';
+import {HockeyGame,clamp} from './engine.mjs?v=ice-5.2';
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const SHOTS=['wrist','slap','snap'];
 export class HockeyGamePlus extends HockeyGame {
@@ -69,7 +69,7 @@ export class HockeyGamePlus extends HockeyGame {
   const active=keeper||away?[5,6]:d.type==='passing'?[0,1,2,3,4]:d.type==='skating'?[0]:[0,11];
   for(const p of this.players){p.active=active.includes(p.id);p.x=p.goalie?(p.team===0?-49:49):p.team===0?-20:20;p.z=0;p.cooldown=0;}
   this.selected=keeper?5:0;const carrier=this.players[keeper||away?6:0];
-  if(keeper){carrier.x=-8;carrier.z=(this.random()-.5)*34;}
+  if(keeper){carrier.x=-8;carrier.z=(this.random()-.5)*(this.settings.practiceTheme==='storm'?46:34);}
   if(d.type==='passing')this.players.filter(p=>p.team===0&&!p.goalie).forEach((p,i)=>{p.x=-20+i*9;p.z=i%2?14:-12;});
   if(d.type==='skating'){this.gates=[[-20,-15],[0,15],[20,-15],[38,10],[25,20],[0,-20],[-25,12],[-40,0]];this.selected=0;}
   this.puck.owner=carrier.id;this.puck.x=carrier.x;this.puck.z=carrier.z;this.puck.y=.23;this.puck.vx=this.puck.vz=this.puck.vy=0;this.puck.lock=0;this.puck.shot=false;this.target={z:(d.attempt%2?1:-1)*2.8};if(this.settings.practiceTheme==='aurora')this.gates=[[-25,-18],[-12,18],[0,-18],[12,18],[28,-18],[40,18],[15,0],[-35,0]];if(this.settings.practiceTheme==='ocean')this.players.filter(p=>p.team===0&&!p.goalie).forEach((p,i)=>{p.x=-32+i*15;p.z=i%2?20:-20;});this.rosterVersion++;
@@ -85,7 +85,7 @@ export class HockeyGamePlus extends HockeyGame {
    if(finished){d.stage='done';this.mode='final';this.emit('final');return;}if(d.type==='passing'){d.stage='live';this.mode='play';return;}this.beginAttempt();return;
   }
   if(this.mode==='faceoff'){this.phaseTimer-=dt;if(this.phaseTimer<=0){this.mode='play';d.stage='live';d.conceded=this.score[1];d.savedAtStart=this.stats.saves[0];this.emit('puckdrop');}return;}
-  if(this.mode!=='play')return;d.time+=dt;this.clock=Math.max(0,(d.type==='skating'||d.type==='passing'?60:12)-d.time);
+  if(this.mode!=='play')return;d.time+=dt;this.clock=Math.max(0,(d.type==='skating'||d.type==='passing'?60:this.settings.practiceTheme==='inferno'?8:12)-d.time);
   // Keep base regulation/intermission logic out of drills.
   const clock=this.clock;this.clock=999;this.shiftTime=0;if(d.type==='shootout'){this.selected=0;if(d.turn===1)input={};}super.update(dt,input);this.clock=clock;
   if(d.stage==='pause')return;
