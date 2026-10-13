@@ -1,7 +1,7 @@
-import {ArenaDetail} from './arena-detail.mjs?v=stats-6';
-import {teamPresentation,teamPack} from './team-builder.mjs?v=stats-6';
+import {ArenaDetail} from './arena-detail.mjs?v=calls-7';
+import {teamPresentation,teamPack} from './team-builder.mjs?v=calls-7';
 import * as THREE from './vendor/three.module.js';
-import { TEAMS, clamp } from './engine.mjs?v=stats-6';
+import { TEAMS, clamp } from './engine.mjs?v=calls-7';
 const UP=new THREE.Vector3(0,1,0);
 export class RinkRenderer {
   constructor(container,game){
