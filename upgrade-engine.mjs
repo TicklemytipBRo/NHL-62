@@ -1,4 +1,4 @@
-import {HockeyGame,clamp} from './engine.mjs?v=ice-5.2';
+import {HockeyGame,clamp} from './engine.mjs?v=stats-6';
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const SHOTS=['wrist','slap','snap'];
 export class HockeyGamePlus extends HockeyGame {
@@ -18,7 +18,7 @@ export class HockeyGamePlus extends HockeyGame {
  applyPenalties(){for(const p of this.players)p.active=!(this.penalties??[]).some(n=>n.id===p.id&&n.time>0);if(this.players[this.selected]?.active===false)this.selected=this.players.find(p=>p.team===0&&!p.goalie&&p.active)?.id??5;}
  drawFaceoff(){if(this.mode!=='faceoff'||this.settings.playerMode==='goalie')return false; if(this.faceoffTap===null){this.faceoffTap=this.phaseTimer;this.emit('drawtiming',{good:this.phaseTimer<=.32&&this.phaseTimer>=0});}return true;}
  whistle(message,zone){this.ruleMessage=message;this.faceoff(true,zone);this.emit('whistle',{message});}
- check(p=this.players[this.selected]){const victim=this.players.find(q=>q.active!==false&&q.team!==p.team&&!q.goalie&&dist(p,q)<5);const illegal=this.settings.rules&&this.penalties.filter(n=>n.team===p.team).length<2&&victim&&this.puck.owner!==victim.id&&dist(victim,this.puck)>5;const hit=super.check(p);if(hit&&p.custom&&p.style==='power'&&victim){victim.stun+=.35;victim.vx*=1.15;victim.vz*=1.15;}if(hit&&illegal){this.penalties.push({id:p.id,team:p.team,time:30});this.whistle('INTERFERENCE · 30 SECOND MINOR',{x:p.team===0?-36:36,z:p.z>=0?12:-12});this.emit('penalty',{team:p.team});}return hit;}
+ check(p=this.players[this.selected]){const victim=this.players.find(q=>q.active!==false&&q.team!==p.team&&!q.goalie&&dist(p,q)<5);const illegal=this.settings.rules&&this.penalties.filter(n=>n.team===p.team).length<2&&victim&&this.puck.owner!==victim.id&&dist(victim,this.puck)>5;const hit=super.check(p);if(hit&&p.custom&&p.style==='power'&&victim){victim.stun+=.35;victim.vx*=1.15;victim.vz*=1.15;}if(hit&&illegal){this.stats.penalties[p.team]++;this.penalties.push({id:p.id,team:p.team,time:30});this.whistle('INTERFERENCE · 30 SECOND MINOR',{x:p.team===0?-36:36,z:p.z>=0?12:-12});this.emit('penalty',{team:p.team});}return hit;}
  move(p,ax,az,dt,speed=16){
   if(p.active===false)return;const profile=p.custom?p.style:null;speed*=profile==='speedster'?1.1:profile==='power'?.96:1;
   const stopping=p.id===this.selected&&this.lastInput?.stop;

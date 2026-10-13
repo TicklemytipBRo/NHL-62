@@ -1,15 +1,15 @@
-import {installRinkUpdate} from './rink-update.mjs?v=ice-5.2';
-import {installClubhouse} from './clubhouse-ui.mjs?v=ice-5.2';
-import { TEAMS, clamp } from './engine.mjs?v=ice-5.2';
-import { EliteGame as HockeyGame } from './elite-engine.mjs?v=ice-5.2';
-import {installElite} from './elite-ui.mjs?v=ice-5.2';
-import {customizeRoster,teamPresentation,teamPack} from './team-builder.mjs?v=ice-5.2';
-import { installExpansion } from './expansion-ui.mjs?v=ice-5.2';
+import {installRinkUpdate} from './rink-update.mjs?v=stats-6';
+import {installClubhouse} from './clubhouse-ui.mjs?v=stats-6';
+import { TEAMS, clamp } from './engine.mjs?v=stats-6';
+import { EliteGame as HockeyGame } from './elite-engine.mjs?v=stats-6';
+import {installElite} from './elite-ui.mjs?v=stats-6';
+import {customizeRoster,teamPresentation,teamPack} from './team-builder.mjs?v=stats-6';
+import { installExpansion } from './expansion-ui.mjs?v=stats-6';
 let expansion=null;
-import { RinkRenderer } from './render.mjs?v=ice-5.2';
-import { ArenaAudio } from './audio.mjs?v=ice-5.2';
-import { Controls, LABELS, keyLabel, DEFAULTS } from './controls.mjs?v=ice-5.2';
-import { RosterStore } from './roster-store.mjs?v=ice-5.2';
+import { RinkRenderer } from './render.mjs?v=stats-6';
+import { ArenaAudio } from './audio.mjs?v=stats-6';
+import { Controls, LABELS, keyLabel, DEFAULTS } from './controls.mjs?v=stats-6';
+import { RosterStore } from './roster-store.mjs?v=stats-6';
 const $=id=>document.getElementById(id);
 const audio=new ArenaAudio();let view=null,previousMode='menu',lastCountdown=0,modalClose=null,toastTimer=0,rafLast=0,accumulator=0,uiClock=0;
 const controls=new Controls();const keys=new Set(),touch={x:0,z:0,shoot:false,sprint:false,butterfly:false,recenter:false};
@@ -70,9 +70,9 @@ function advanceIntro(dt){
   if(phase!==introPhase){introPhase=phase;const match=intro.kind==='match',goalie=playerMode==='goalie';const names=[['32 NHL TEAMS','THE LEAGUE.<br>YOUR ICE.','Every shift starts here.'],['OWN THE CREASE',goalie?'THIS IS<br>YOUR NET.':'BUILT FOR<br>THE MOMENT.',match?(game.players[goalie?5:game.selected].name):'Timing. Positioning. Instinct.'],['TONIGHT’S MATCHUP',`${esc(TEAMS[home].name.toUpperCase())}<br><em>VS ${esc(TEAMS[away].name.toUpperCase())}</em>`,`${TEAMS[home].fullName} · ${TEAMS[away].fullName}`],['VERY BAD GAMES PRESENTS','RINK <em>26.</em>',match?(goalie?'Protect the crease.':'Take the ice.'):'Your rink. Your rivalry.']];if(game.settings.club?.enabled){const club=game.settings.club;names[0]=[club.arena.toUpperCase(),esc(club.city.toUpperCase())+'<br>'+esc(club.name.toUpperCase()),teamPack(club).line];names[2]=['TONIGHT’S MATCHUP',esc(club.name.toUpperCase())+'<br><em>VS '+esc(TEAMS[away].name.toUpperCase())+'</em>',club.arena];}const [k,title,detail]=names[phase];$('cinema-kicker').textContent=k;$('cinema-title').innerHTML=title;$('cinema-detail').textContent=detail;$('cinema-teams').classList.toggle('hidden',phase!==2);$('cinema-copy').classList.remove('cinema-enter');void $('cinema-copy').offsetWidth;$('cinema-copy').classList.add('cinema-enter');}
   if(intro.time>=18&&!expansion.broadcast.introBusy)finishIntro();
 }
-function returnToMenu(){game.zamboni=null;if(intro)finishIntro();hideModal();resetInput();game.mode='menu';$('menu').classList.remove('hidden');$('hud').classList.add('hidden');$('pause').classList.add('hidden');$('touch-controls').classList.add('hidden');document.body.classList.remove('playing','goalie-mode');applyRosterPreview();$('start').focus();}
-function hideModal(){ $('modal-layer').classList.add('hidden');$('modal').replaceChildren();modalClose=null;binding=null;rosterDialogTeam=null;$('modal').classList.remove('wide-modal'); }
-function showModal(html,close=null){$('modal').innerHTML=html;$('modal-layer').classList.remove('hidden');modalClose=close;$('modal').querySelector('button')?.focus();resetInput();}
+function returnToMenu(){game.zamboni=null;if(intro)finishIntro();hideModal();resetInput();game.mode='menu';$('menu').classList.remove('hidden');$('hud').classList.add('hidden');$('pause').classList.add('hidden');$('touch-controls').classList.add('hidden');document.body.classList.remove('playing','goalie-mode');applyRosterPreview();expansion?.broadcast.stop();audio.stopCrowdChant();audio.stopCinematic();if(anthemPlayer){anthemPlayer.onended=null;anthemPlayer.pause();anthemPlayer=null;}$('start').focus();}
+function hideModal(){ expansion?.broadcast.stop();$('modal-layer').classList.add('hidden');$('modal').replaceChildren();modalClose=null;binding=null;rosterDialogTeam=null;$('modal').classList.remove('wide-modal'); }
+function showModal(html,close=null){if(game.mode==='final')html+=expansion?.rewardSummary?.()||'';$('modal').innerHTML=html;$('modal-layer').classList.remove('hidden');modalClose=close;$('modal').querySelector('button')?.focus();resetInput();}
 function showPause(){
   if(!['paused','play','faceoff','goal','frozen'].includes(game.mode))return;game.pause();
   showModal('<div class="eyebrow">TIMEOUT</div><h2 id="modal-title">TAKE A BREATHER.</h2><p>The ice will be here.</p><button class="primary" id="resume-match">RESUME MATCH</button><button class="secondary" id="pause-controls">Customize controls</button><button class="secondary" id="pause-roster">Full team roster</button><button class="secondary" id="exit-match">Back to team selection</button>',resume);

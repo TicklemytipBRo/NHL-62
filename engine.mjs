@@ -1,4 +1,4 @@
-import { TEAMS } from './teams.mjs?v=ice-5.2';
+import { TEAMS } from './teams.mjs?v=stats-6';
 export { TEAMS };
 export const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const norm=(x,z)=>{const m=Math.hypot(x,z);return m>.001?{x:x/m,z:z/m}:{x:0,z:0}};
@@ -9,14 +9,14 @@ export class HockeyGame {
     this.players=[];this.puck={x:0,z:0,y:.23,vx:0,vz:0,vy:0,owner:null,lock:0,lastTeam:null};
     this.settings={home:0,away:1,difficulty:'pro',periodLength:60,playerMode:'skater'};
     this.rosters=[[],[]];this.lineIndex=[0,0];this.rosterVersion=0;this.shiftTime=0;this.lastInput={};this.freezeZone={x:-36,z:12};
-    this.stats={shots:[0,0],hits:[0,0],saves:[0,0]};this.score=[0,0];this.period=1;this.clock=60;
+    this.stats={shots:[0,0],hits:[0,0],saves:[0,0],penalties:[0,0]};this.score=[0,0];this.period=1;this.clock=60;
     this.selected=0;this.phaseTimer=0;this.charge=0;this.stamina=1;this.message='';this.lastGoal=null;
     this.setupPlayers();this.faceoff(false);this.mode='menu';
   }
   emit(type,data={}) { this.onEvent({type,...data}); }
   start(settings={},rosters=null) {
     this.settings={...this.settings,...settings};if(rosters)this.rosters=rosters.map(r=>structuredClone(r));this.lineIndex=[0,0];this.shiftTime=0; this.clock=this.settings.periodLength;
-    this.score=[0,0];this.period=1;this.stats={shots:[0,0],hits:[0,0],saves:[0,0]};
+    this.score=[0,0];this.period=1;this.stats={shots:[0,0],hits:[0,0],saves:[0,0],penalties:[0,0]};
     this.elapsed=0;this.stamina=1;this.charge=0;this.setupPlayers();this.faceoff();this.emit('start');
   }
   setupPlayers() {
