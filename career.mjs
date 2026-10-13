@@ -1,4 +1,4 @@
-import {seedDynamics,simulateFixture,updateForm} from './season-dynamics.mjs?v=calls-7';
+import {seedDynamics,simulateFixture,updateForm} from './season-dynamics.mjs?v=booth-8';
 export const CAREER_KEY='rink26.career.v1';
 export function schedule(n=32){let order=Array.from({length:n},(_,i)=>i),rounds=[];for(let r=0;r<n-1;r++){rounds.push(Array.from({length:n/2},(_,i)=>r%2?[order[n-1-i],order[i]]:[order[i],order[n-1-i]]));order=[order[0],order.at(-1),...order.slice(1,-1)];}return rounds;}
 export function newCareer(team){return{version:1,team,week:0,phase:'season',schedule:schedule(),table:Array.from({length:32},(_,team)=>({team,gp:0,w:0,l:0,otl:0,pts:0,gf:0,ga:0})),results:[],round:0,bracket:[],champion:null};}

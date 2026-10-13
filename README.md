@@ -83,3 +83,6 @@ Wallet starts at 0. Complete all four live tutorial objectives to earn 500 once;
 Guided tutorial, four themed drills, layered crowd chant, Canadian/US anthem play-or-skip ceremony, cursor-tilted cards and translucent glass panels. Anthems stream from credited external hosts and can always be skipped. 3D requires WebGL; enable graphics acceleration in Windows Chrome/Edge.
 
 Commentary uses latest-line interruption: old browser speech and bundled clips are cancelled, including pending loads. Leaving a game stops commentary and crowd chants.
+
+## Booth audio repair
+Routine calls now finish before another routine call starts, preventing repeated cancellations from starving playback. Hits/goals still interrupt the intro and lower-priority calls. Duplicate pending calls are coalesced and stale updates expire. Voice assets are preloaded and concurrent fetches shared. Announcer Audio offers Arena, Booth Analyst (distinct synthetic SLT voice), or alternating two-person booth, plus Restore & Test Audio and a separate crowd slider. Crowd chants use their own bus and a peak limiter instead of being ducked beneath every spoken line.

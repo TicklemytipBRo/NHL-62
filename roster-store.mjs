@@ -1,4 +1,4 @@
-import {TEAMS} from './teams.mjs?v=calls-7';
+import {TEAMS} from './teams.mjs?v=booth-8';
 export class RosterStore {
  constructor(onChange=()=>{}){this.rosters={};this.onChange=onChange;this.syncing=false;this.done=0;this.failures=[];this.lastAttempt=null;}
  get(code){return this.rosters[code]??null;}

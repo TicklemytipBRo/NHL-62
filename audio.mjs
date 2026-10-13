@@ -1,18 +1,25 @@
 export class ArenaAudio {
-  constructor(){this.muted=false;this.ctx=null;this.crowd=null;this.voiceCache=new Map();this.voiceEpoch=0;this.voiceNodes=new Set();this.chantEpoch=0;this.chantStops=new Set();}
+  constructor(){this.muted=false;this.ctx=null;this.crowd=null;this.voiceCache=new Map();this.voiceLoads=new Map();this.crowdVolume=1.5;this.voiceEpoch=0;this.voiceNodes=new Set();this.chantEpoch=0;this.chantStops=new Set();}
   async unlock(){
+    if(this.ctx?.state==='closed')this.ctx=null;
     if(!this.ctx){
       const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;this.ctx=new Audio();
-      this.master=this.ctx.createGain();this.master.gain.value=this.muted?0:.7;this.master.connect(this.ctx.destination);this.effects=this.ctx.createGain();this.effects.connect(this.master);
+      this.master=this.ctx.createGain();this.master.gain.value=this.muted?0:.7;const limiter=this.ctx.createDynamicsCompressor();limiter.threshold.value=-6;limiter.ratio.value=8;this.master.connect(limiter).connect(this.ctx.destination);this.chantBus=this.ctx.createGain();this.chantBus.connect(this.master);this.effects=this.ctx.createGain();this.effects.connect(this.master);
       const buffer=this.ctx.createBuffer(1,this.ctx.sampleRate*3,this.ctx.sampleRate),data=buffer.getChannelData(0);let smooth=0;
       for(let i=0;i<data.length;i++){smooth=(smooth+(Math.random()*2-1)*.1)/1.02;data[i]=smooth;}
       const source=this.ctx.createBufferSource();source.buffer=buffer;source.loop=true;const filter=this.ctx.createBiquadFilter();filter.type='bandpass';filter.frequency.value=450;filter.Q.value=.5;this.crowd=this.ctx.createGain();this.crowd.gain.value=.085;source.connect(filter).connect(this.crowd).connect(this.effects);source.start();
     }
     if(this.ctx.state==='suspended')await this.ctx.resume();
   }
+  async loadVoice(id){
+    if(this.voiceCache.has(id))return this.voiceCache.get(id);
+    if(!this.voiceLoads.has(id))this.voiceLoads.set(id,(async()=>{const r=await fetch('./assets/voice/'+id+'.mp3',{signal:AbortSignal.timeout(12000)});if(!r.ok)throw new Error('Voice clip unavailable');const buffer=await this.ctx.decodeAudioData(await r.arrayBuffer());this.voiceCache.set(id,buffer);return buffer;})().finally(()=>this.voiceLoads.delete(id)));
+    return this.voiceLoads.get(id);
+  }
+  warmVoices(desk='primary'){if(!this.ctx)return;const ids=['intro','goal','hit','shot','save','drop','draw','pass','pickup','completepass','penalty','final'];return Promise.allSettled(ids.flatMap(id=>desk==='duo'?[id,'alt/'+id]:[desk==='secondary'?'alt/'+id:id]).map(id=>this.loadVoice(id)));}
   async playVoice(id,volume=1,onStart=()=>{}){
     const epoch=this.voiceEpoch;await this.unlock();if(epoch!==this.voiceEpoch)return;if(!this.ctx)throw new Error('Web Audio unavailable');
-    if(!this.voiceCache.has(id)){const response=await fetch('./assets/voice/'+id+'.mp3',{signal:AbortSignal.timeout(12000)});if(!response.ok)throw new Error('Voice clip unavailable');this.voiceCache.set(id,await this.ctx.decodeAudioData(await response.arrayBuffer()));}
+    await this.loadVoice(id);
     if(epoch!==this.voiceEpoch)return;
     if(this.ctx.state!=='running')throw new Error('Click to enable audio');
     return new Promise((resolve,reject)=>{const node=this.ctx.createBufferSource(),gain=this.ctx.createGain();node.buffer=this.voiceCache.get(id);gain.gain.value=volume;node.connect(gain).connect(this.master);this.voiceNodes.add(node);node.onended=()=>{this.voiceNodes.delete(node);node.disconnect();gain.disconnect();resolve();};try{node.start();onStart();}catch(e){reject(e);}});
@@ -24,8 +31,8 @@ export class ArenaAudio {
     if(!this.voiceCache.has('chant')){const r=await fetch('./assets/voice/chant.mp3');if(!r.ok)return;this.voiceCache.set('chant',await this.ctx.decodeAudioData(await r.arrayBuffer()));}
     if(epoch!==this.chantEpoch)return;const c=this.ctx,buffer=this.voiceCache.get('chant'),t=c.currentTime;
     for(let wave=0;wave<2;wave++)for(let i=0;i<9;i++){
-      const voice=c.createBufferSource(),gain=c.createGain(),pan=c.createStereoPanner(),echo=c.createDelay(2),tail=c.createGain();voice.buffer=buffer;voice.playbackRate.value=.79+i*.035;gain.gain.value=.09;pan.pan.value=(i-4)/5;echo.delayTime.value=.34+i*.045;tail.gain.value=.27;
-      voice.connect(gain).connect(pan).connect(this.effects);pan.connect(echo).connect(tail).connect(this.effects);tail.connect(echo);voice.start(t+wave*4.5+i*.045);const stop=()=>{gain.gain.value=0;tail.gain.value=0;try{voice.stop();}catch{}};this.chantStops.add(stop);voice.onended=()=>setTimeout(()=>{this.chantStops.delete(stop);voice.disconnect();gain.disconnect();pan.disconnect();echo.disconnect();tail.disconnect();},2400);
+      const voice=c.createBufferSource(),gain=c.createGain(),pan=c.createStereoPanner(),echo=c.createDelay(2),tail=c.createGain();voice.buffer=buffer;voice.playbackRate.value=.79+i*.035;gain.gain.value=.11*this.crowdVolume;pan.pan.value=(i-4)/5;echo.delayTime.value=.34+i*.045;tail.gain.value=.27;
+      voice.connect(gain).connect(pan).connect(this.chantBus);pan.connect(echo).connect(tail).connect(this.chantBus);tail.connect(echo);voice.start(t+wave*4.5+i*.045);const stop=()=>{gain.gain.value=0;tail.gain.value=0;try{voice.stop();}catch{}};this.chantStops.add(stop);voice.onended=()=>setTimeout(()=>{this.chantStops.delete(stop);voice.disconnect();gain.disconnect();pan.disconnect();echo.disconnect();tail.disconnect();},2400);
     }this.cheer();
   }
   toggle(){this.muted=!this.muted;if(this.master)this.master.gain.setTargetAtTime(this.muted?0:.7,this.ctx.currentTime,.03);return this.muted;}

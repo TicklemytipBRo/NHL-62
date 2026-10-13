@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {teamPack,teamPresentation} from './team-builder.mjs?v=calls-7';
-import {TEAMS} from './teams.mjs?v=calls-7';
+import {teamPack,teamPresentation} from './team-builder.mjs?v=booth-8';
+import {TEAMS} from './teams.mjs?v=booth-8';
 export class ArenaDetail {
  constructor(view){this.v=view;this.group=new THREE.Group();view.scene.add(this.group);this.waves=[];this.flex=0;this.people=[];this.lastClub='';const add=(color,scale,pos,extra)=>{const m=view.box(color,scale,pos,extra);this.group.add(m);return m;};this.add=add;
  // Benches sit between the ice and the first spectator row; coaches stand behind them.

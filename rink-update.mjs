@@ -1,5 +1,5 @@
-import {PACK_TYPES,settleReward,freshWallet,completeLesson,purchase,TRAINING,THEMES} from './economy.mjs?v=calls-7';
-import {playerPool,collect,COLLECTION_KEY} from './collection.mjs?v=calls-7';
+import {PACK_TYPES,settleReward,freshWallet,completeLesson,purchase,TRAINING,THEMES} from './economy.mjs?v=booth-8';
+import {playerPool,collect,COLLECTION_KEY} from './collection.mjs?v=booth-8';
 const $=id=>document.getElementById(id),safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function installRinkUpdate(api,base){
  let wallet=freshWallet(),collection={};try{wallet={...wallet,...JSON.parse(localStorage.getItem('rink26.wallet')||'{}')};collection=JSON.parse(localStorage.getItem(COLLECTION_KEY)||'{}');}catch{}

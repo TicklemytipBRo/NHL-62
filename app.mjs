@@ -1,15 +1,15 @@
-import {installRinkUpdate} from './rink-update.mjs?v=calls-7';
-import {installClubhouse} from './clubhouse-ui.mjs?v=calls-7';
-import { TEAMS, clamp } from './engine.mjs?v=calls-7';
-import { EliteGame as HockeyGame } from './elite-engine.mjs?v=calls-7';
-import {installElite} from './elite-ui.mjs?v=calls-7';
-import {customizeRoster,teamPresentation,teamPack} from './team-builder.mjs?v=calls-7';
-import { installExpansion } from './expansion-ui.mjs?v=calls-7';
+import {installRinkUpdate} from './rink-update.mjs?v=booth-8';
+import {installClubhouse} from './clubhouse-ui.mjs?v=booth-8';
+import { TEAMS, clamp } from './engine.mjs?v=booth-8';
+import { EliteGame as HockeyGame } from './elite-engine.mjs?v=booth-8';
+import {installElite} from './elite-ui.mjs?v=booth-8';
+import {customizeRoster,teamPresentation,teamPack} from './team-builder.mjs?v=booth-8';
+import { installExpansion } from './expansion-ui.mjs?v=booth-8';
 let expansion=null;
-import { RinkRenderer } from './render.mjs?v=calls-7';
-import { ArenaAudio } from './audio.mjs?v=calls-7';
-import { Controls, LABELS, keyLabel, DEFAULTS } from './controls.mjs?v=calls-7';
-import { RosterStore } from './roster-store.mjs?v=calls-7';
+import { RinkRenderer } from './render.mjs?v=booth-8';
+import { ArenaAudio } from './audio.mjs?v=booth-8';
+import { Controls, LABELS, keyLabel, DEFAULTS } from './controls.mjs?v=booth-8';
+import { RosterStore } from './roster-store.mjs?v=booth-8';
 const $=id=>document.getElementById(id);
 const audio=new ArenaAudio();let view=null,previousMode='menu',lastCountdown=0,modalClose=null,toastTimer=0,rafLast=0,accumulator=0,uiClock=0;
 const controls=new Controls();const keys=new Set(),touch={x:0,z:0,shoot:false,sprint:false,butterfly:false,recenter:false};
@@ -44,7 +44,7 @@ function resetInput(){keys.clear();touch.x=touch.z=0;touch.shoot=touch.sprint=to
 function start(type="exhibition"){
   if(typeof type!=="string")type="exhibition";if(type==='club')refreshClub();
   if(!view){toast('Enable graphics acceleration and reload to play in 3D.');return;}const h=rosterStore.get(TEAMS[home].short),a=rosterStore.get(TEAMS[away].short);if(!h||!a){toast('Wait for both team rosters to load');return;}
-  audio.unlock().catch(()=>{});resetInput();hideModal();
+  audio.unlock().then(()=>audio.warmVoices(expansion.broadcast.desk)).catch(()=>{});resetInput();hideModal();
   const matchOptions=expansion.options(type);if(matchOptions.club.enabled){const roster=expansion.homeRoster(h.players,matchOptions.club);chosenSkaters[TEAMS[home].short]=roster.find(p=>!['D','G'].includes(p.position))?.id;chosenGoalies[TEAMS[home].short]=roster.find(p=>p.position==='G')?.id;}game.start({...matchOptions,home,away,difficulty:$('difficulty').value,periodLength:Number($('period-length').value),playerMode,homeSkater:chosenSkaters[TEAMS[home].short],homeGoalie:chosenGoalies[TEAMS[home].short],awaySkater:chosenSkaters[TEAMS[away].short],awayGoalie:chosenGoalies[TEAMS[away].short]},[customizeRoster(expansion.homeRoster(h.players,matchOptions.club),matchOptions.club),a.players]);
   view.rebuildPlayers();$('home-abbr').textContent=teamPresentation(game.settings,0,TEAMS).short;$('camera').querySelector('span').textContent=playerMode==='goalie'?'Goalie':view.cameraMode==='broadcast'?'Broadcast':'Follow';$('menu').classList.add('hidden');$('hud').classList.add('hidden');$('pause').classList.add('hidden');document.body.classList.add('playing');document.body.classList.toggle('goalie-mode',playerMode==='goalie');$('touch-controls').classList.add('hidden');$('start').blur();previousMode='';refreshHints();if(game.drill){beginIntro('match');finishIntro();}else anthemPrelude();
 }
